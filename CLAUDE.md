@@ -1,115 +1,118 @@
 # Shadow Glass
 
-> "O vidro que imita o outro lado."
+> "The glass that mirrors the other side."
 
-Acesso remoto Mac → Windows construído do zero, com foco em aprendizado
-profundo de C/C++/Swift e programação de sistemas (não em usar uma lib
-pronta tipo TeamViewer/AnyDesk).
+Remote access, Mac → Windows, built from scratch, focused on deep learning
+of C/C++/Swift and systems programming (not on using an off-the-shelf lib
+like TeamViewer/AnyDesk).
 
-## Hardware do projeto
+## Project hardware
 
-- Cliente: MacBook Air M1 (Apple Silicon)
-- Servidor: notebook Acer Aspire, Windows 10 Home Single Language.
-  CPU Intel Core i5-7200U (2 núcleos/4 threads) + GPU dedicada NVIDIA
-  GeForce 940MX (2GB VRAM) — encode de vídeo por hardware via **NVENC**
-- Jogos-alvo: Mass Effect (trilogia), League of Legends, Vampire: The
-  Masquerade – Redemption (leves/médios — a 940MX dá conta)
-- Rede: LAN em casa como caso primário; acesso remoto (fora da LAN) é
-  requisito futuro, não do MVP
-- Resolução inicial: 720p, com arquitetura aberta para outras resoluções
-  depois (não hardcodar)
+- Client: MacBook Air M1 (Apple Silicon)
+- Server: Acer Aspire notebook, Windows 10 Home Single Language.
+  Intel Core i5-7200U CPU (2 cores/4 threads) + dedicated NVIDIA
+  GeForce 940MX GPU (2GB VRAM) — hardware video encode via **NVENC**
+- Target games: Mass Effect (trilogy), League of Legends, Vampire: The
+  Masquerade – Redemption (light/medium — the 940MX handles these fine)
+- Network: home LAN as the primary case; remote access (outside the LAN)
+  is a future requirement, not part of the MVP
+- Initial resolution: 720p, with the architecture left open for other
+  resolutions later (don't hardcode)
 
-## Decisão de arquitetura
+## Architecture decision
 
-Ver [`docs/decisions/0001-transporte-proprio-vs-rdp.md`](docs/decisions/0001-transporte-proprio-vs-rdp.md)
-e [`docs/decisions/0002-libwebrtc-como-transporte.md`](docs/decisions/0002-libwebrtc-como-transporte.md)
-(o ADR 0002 substitui a parte de transporte do ADR 0001).
+See [`docs/decisions/0001-custom-transport-vs-rdp.md`](docs/decisions/0001-custom-transport-vs-rdp.md)
+and [`docs/decisions/0002-libwebrtc-as-transport.md`](docs/decisions/0002-libwebrtc-as-transport.md)
+(ADR 0002 supersedes the transport part of ADR 0001).
 
-Resumo: **não** usamos RDP/FreeRDP. Captura de tela + encode H.264 por
-hardware (NVENC) continuam do jeito descrito no ADR 0001. O transporte de
-rede, porém, usa **`libwebrtc`** desde já (ADR 0002) em vez de um protocolo
-UDP próprio — decisão do usuário: priorizar algo simples e funcional rodando
-ponta a ponta, mantendo a estrutura do projeto aberta para trocar o
-transporte depois se necessário.
+Summary: we do **not** use RDP/FreeRDP. Screen capture + hardware H.264
+encode (NVENC) stay as described in ADR 0001. Network transport, however,
+uses **`libwebrtc`** from the start (ADR 0002) instead of a custom UDP
+protocol — the user's call: prioritize something simple and working
+end-to-end sooner, while keeping the project structure open to swap the
+transport later if needed.
 
-## Roteiro de fases
+## Phase roadmap
 
-Cada fase entrega algo que roda de ponta a ponta, mesmo que incompleto.
+Each phase delivers something that runs end-to-end, even if incomplete.
 
-0. Decisão de arquitetura + estrutura do harness (esta fase)
-1. Windows: captura de tela (Desktop Duplication API) + encode H.264 via
-   NVENC, validado localmente (sem rede ainda)
-2. Rede: integrar `libwebrtc` no servidor Windows, transporte de vídeo via
-   LAN até um receptor simples
-3. Mac: cliente Swift mínimo recebendo o stream via `libwebrtc`,
-   decodificando (VideoToolbox) e desenhando na tela
-4. Canal de input: mouse/teclado do Mac → DataChannel → injeção no Windows
-   (`SendInput`)
-5. Áudio: captura loopback (WASAPI) → `libwebrtc` → playback no Mac
-6. Tuning de latência, perda de pacote, bitrate adaptativo
-7. Acesso remoto fora da LAN — já vem de graça do ICE/STUN/TURN do
-   `libwebrtc` (ver ADR 0002); só falta configurar/testar
+0. Architecture decision + harness structure (this phase)
+1. Windows: screen capture (Desktop Duplication API) + H.264 encode via
+   NVENC, validated locally (no network yet)
+2. Network: integrate `libwebrtc` into the Windows server, video transport
+   over the LAN to a simple receiver
+3. Mac: minimal Swift client receiving the stream via `libwebrtc`,
+   decoding (VideoToolbox) and drawing it on screen
+4. Input channel: mouse/keyboard on the Mac → DataChannel → injection on
+   Windows (`SendInput`)
+5. Audio: loopback capture (WASAPI) → `libwebrtc` → playback on the Mac
+6. Latency tuning, packet loss handling, adaptive bitrate
+7. Remote access outside the LAN — comes for free from `libwebrtc`'s
+   ICE/STUN/TURN (see ADR 0002); just needs configuring/testing
 
-## Estrutura do repositório
+## Repository structure
 
-- `client-macos/` — pacote Swift Package Manager (não `.xcodeproj` cru — ver
-  "Cliente Mac: SPM em vez de Xcode project" abaixo)
-- `server-windows/` — código C/C++, build via CMake (código chega na Fase 1)
-- `docs/decisions/` — ADRs (Architecture Decision Records), uma decisão por
-  arquivo, numeradas. Puro Markdown, sem nada específico de Claude.
-- `docs/LEARNING_LOG.md` — diário de bordo: uma entrada por sessão de
-  trabalho, registrando o que foi aprendido e por quê.
-- `docs/protocol.md` — a criar na Fase 2: como o servidor e o cliente se
-  encontram (sinalização) e o formato dos payloads trocados via DataChannel
-  do `libwebrtc`. É o único "contrato compartilhado" entre C/C++ e Swift.
-- `.claude/skills/` — ainda não existe. Só criaremos skills quando houver um
-  script real e repetido para orquestrar (build, rodar servidor, testar
-  conexão). Cada skill será um Markdown com frontmatter (nome, descrição,
-  quando usar) chamando um script em `scripts/*.sh` — a lógica mecânica fica
-  no script, a skill só decide quando/por quê rodá-lo. Isso mantém tudo
-  executável fora do Claude Code (bash puro).
-- MCP não é usado neste projeto — não há integração de ferramenta externa
-  que justifique isso ainda.
+- `client-macos/` — Swift Package Manager package (not a raw `.xcodeproj`
+  — see "Mac client: SPM instead of an Xcode project" below)
+- `server-windows/` — C/C++ code, built via CMake (code lands in Phase 1)
+- `docs/decisions/` — ADRs (Architecture Decision Records), one decision
+  per file, numbered. Plain Markdown, nothing Claude-specific.
+- `docs/LEARNING_LOG.md` — logbook: one entry per work session, recording
+  what was learned and why.
+- `docs/protocol.md` — to be created in Phase 2: how the server and client
+  find each other (signaling) and the payload format exchanged over the
+  `libwebrtc` DataChannel. It's the only "shared contract" between C/C++
+  and Swift.
+- `.claude/skills/` — doesn't exist yet. We'll only create skills once
+  there's a real, repeated script to orchestrate (build, run the server,
+  test the connection). Each skill will be a Markdown file with
+  frontmatter (name, description, when to use) calling a script in
+  `scripts/*.sh` — the mechanical logic lives in the script, the skill
+  only decides when/why to run it. That keeps everything runnable outside
+  Claude Code (plain bash).
+- MCP isn't used in this project — there's no external tool integration
+  that justifies it yet.
 
-## Cliente Mac: SPM em vez de Xcode project
+## Mac client: SPM instead of an Xcode project
 
-O cliente Mac usa **Swift Package Manager**, não um `.xcodeproj` tradicional.
-Motivo prático: um projeto Xcode clássico guarda a lista de arquivos num
-`project.pbxproj` (referências por caminho/UUID); um `.swift` criado direto
-no disco (por mim ou por qualquer editor) não entra automaticamente na
-build sem um passo manual de "Add Files to Project" no Xcode. SPM descobre
-arquivos por convenção de pasta (`Sources/ShadowGlassClient/*.swift`), sem
-esse arquivo de projeto pra manter sincronizado. Ainda abre normal no Xcode
-(basta abrir `Package.swift`) e também builda por `swift build`/`swift run`
-no terminal, sem precisar da GUI.
+The Mac client uses **Swift Package Manager**, not a traditional
+`.xcodeproj`. Practical reason: a classic Xcode project keeps its file
+list in a `project.pbxproj` (path/UUID references); a `.swift` file
+created directly on disk (by me or any editor) doesn't automatically join
+the build without a manual "Add Files to Project" step in Xcode. SPM
+discovers files by folder convention (`Sources/ShadowGlassClient/*.swift`),
+with no project file to keep in sync. It still opens fine in Xcode (just
+open `Package.swift`) and also builds via `swift build`/`swift run` from
+the terminal, no GUI required.
 
-## Processo de decisão
+## Decision process
 
-Decisões de arquitetura relevantes (o que vira um ADR) passam antes pela
-skill `grilling` — usada para estressar a decisão (alternativas descartadas,
-reversibilidade, o que quebra) antes de ela ser registrada como definitiva
-em `docs/decisions/`. Isso é uma convenção de processo, não uma dependência
-de implementação: mesmo sem a skill instalada, o mesmo processo pode ser
-seguido manualmente (perguntar "o que descartei e por quê", "isso é
-reversível", "o que quebra se eu escolher diferente" antes de fechar um ADR).
+Relevant architecture decisions (the ones that become an ADR) go through
+the `grilling` skill first — used to stress-test the decision (discarded
+alternatives, reversibility, what breaks) before it's written up as final
+in `docs/decisions/`. This is a process convention, not an implementation
+dependency: even without the skill installed, the same process can be
+followed manually (ask "what did I rule out and why", "is this
+reversible", "what breaks if I choose differently" before closing out an
+ADR).
 
-## Abordagem pedagógica
+## Pedagogical approach
 
-Este projeto prioriza aprendizado sobre velocidade. Explicações do "porquê"
-acompanham as mudanças de código; código novo vem com comentários que
-explicam motivação, não só mecânica óbvia.
+This project prioritizes learning over speed. Explanations of "why"
+accompany code changes; new code comes with comments that explain
+motivation, not just obvious mechanics.
 
-## Observação de processo (feedback do usuário, 2026-08-27)
+## Process note (user feedback, 2026-08-27)
 
-O usuário concorda com o princípio de perguntar antes de decidir, mas
-apontou que perguntas técnicas abertas (ex: "escolha resolução/fps",
-"escolha encoder") sem contexto prévio não funcionam quando ele ainda não
-tem repertório pra avaliar as opções — isso vira decisão às cegas, não
-colaboração.
+The user agrees with the principle of asking before deciding, but pointed
+out that open-ended technical questions (e.g. "pick a resolution/fps",
+"pick an encoder") without prior context don't work when he doesn't yet
+have the background to evaluate the options — that turns into a blind
+decision, not collaboration.
 
-Regra daqui pra frente: quando uma decisão exigir conhecimento que o
-usuário ainda não tem, explicar o conceito e o trade-off primeiro (o que é,
-pra que serve, o que muda cada escolha) antes de perguntar — ou, se a
-decisão for de baixo risco e reversível, já tomar a decisão com justificativa
-e seguir, deixando espaço pra ele vetar depois, em vez de bloquear esperando
-uma resposta que ele não tem base pra dar.
+Rule going forward: when a decision requires knowledge the user doesn't
+have yet, explain the concept and the trade-off first (what it is, what
+it's for, what each choice changes) before asking — or, if the decision is
+low-risk and reversible, just make the call with a stated rationale and
+move on, leaving room for him to veto afterward, instead of blocking on an
+answer he has no basis to give.

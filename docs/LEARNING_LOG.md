@@ -1,77 +1,128 @@
-# Diário de bordo — Shadow Glass
+# Logbook — Shadow Glass
 
-## 2026-08-27 — Sessão 0: decisão de arquitetura
+## 2026-08-27 — Session 0: architecture decision
 
-**O que decidimos:** abandonar a ideia inicial de usar RDP/FreeRDP e construir
-um pipeline próprio inspirado no modelo Moonlight/Sunshine (o mesmo padrão do
-protocolo NVIDIA GameStream). Ver [ADR 0001](decisions/0001-transporte-proprio-vs-rdp.md).
+**What we decided:** drop the initial idea of using RDP/FreeRDP and build a
+custom pipeline inspired by the Moonlight/Sunshine model (the same pattern
+as the NVIDIA GameStream protocol). See [ADR 0001](decisions/0001-custom-transport-vs-rdp.md).
 
-**Por que isso importa:** o uso principal do projeto é jogos, com latência
-crítica. RDP foi desenhado para cenários de escritório (imagem estática,
-texto nítido), não para vídeo em movimento contínuo — e além disso o
-servidor RDP nativo do Windows só existe nas edições Pro/Enterprise, o que
-seria um bloqueio prático no Acer Aspire.
+**Why it matters:** the project's main use case is gaming, with critical
+latency. RDP was designed for office scenarios (static images, crisp
+text), not continuous motion video — and on top of that, Windows' native
+RDP server only exists on Pro/Enterprise editions, which would be a
+practical blocker on the Acer Aspire.
 
-**Conceito aprendido:** a diferença entre um protocolo de "área de trabalho
-remota" (RDP/VNC, otimizado para produtividade) e um protocolo de "streaming
-de jogo" (Moonlight/Sunshine, GameStream — otimizado para fps alto e input
-responsivo). Não são a mesma categoria de problema, mesmo parecendo
-superficialmente similares ("ver e controlar outra tela").
+**Concept learned:** the difference between a "remote desktop" protocol
+(RDP/VNC, optimized for productivity) and a "game streaming" protocol
+(Moonlight/Sunshine, GameStream — optimized for high fps and responsive
+input). They're not the same category of problem, even though they look
+superficially similar ("see and control another screen").
 
-**Próximo passo:** Fase 1 — validar no Acer Aspire se há suporte a encode de
-vídeo por hardware (Intel Quick Sync), e escrever o primeiro programa em C
-que captura a tela do Windows (Desktop Duplication API) sem ainda enviar
-nada pela rede.
+**Next step:** Phase 1 — validate on the Acer Aspire whether hardware
+video encode (Intel Quick Sync) is supported, and write the first C
+program that captures the Windows screen (Desktop Duplication API) without
+sending anything over the network yet.
 
-## 2026-08-27 — Sessão 3: hardware real, `libwebrtc` e um ajuste de processo
+## 2026-08-27 — Session 3: real hardware, `libwebrtc`, and a process adjustment
 
-**Fato novo:** o Acer Aspire não é só GPU integrada — tem uma NVIDIA
-GeForce 940MX dedicada (2GB VRAM). Isso troca o encoder de hardware pra
-**NVENC** em vez de Quick Sync (é o que o Sunshine real usa quando há GPU
-NVIDIA). Também confirma que os jogos-alvo (Mass Effect, LoL, Vampire:
-The Masquerade – Redemption) rodam bem nessa GPU — o gargalo não deveria
-ser o jogo em si.
+**New fact:** the Acer Aspire isn't just integrated GPU — it has a
+dedicated NVIDIA GeForce 940MX (2GB VRAM). That switches the hardware
+encoder to **NVENC** instead of Quick Sync (which is what real Sunshine
+uses when an NVIDIA GPU is present). It also confirms the target games
+(Mass Effect, LoL, Vampire: The Masquerade – Redemption) run fine on this
+GPU — the bottleneck shouldn't be the game itself.
 
-**Decisão revertida:** ao grillar o ADR 0001, a pergunta sobre transporte
-(UDP próprio vs `libwebrtc`) voltou à mesa. Optamos por `libwebrtc` desde
-já (ADR 0002), não o protocolo próprio que eu tinha recomendado — prioridade
-é ter algo simples e funcional rodando ponta a ponta primeiro, num projeto
-que é longo prazo. A captura e o encode continuam sendo escritos à mão; só
-o transporte de rede deixa de ser "from scratch".
+**Decision reversed:** while grilling ADR 0001, the transport question
+(custom UDP vs `libwebrtc`) came back up. We went with `libwebrtc` right
+away (ADR 0002), not the custom protocol I had recommended — priority is
+having something simple and working end-to-end first, in a project that's
+long-term. Capture and encode remain hand-written; only network transport
+stops being "from scratch".
 
-**Lição de processo (a mais importante desta sessão):** fui repreendido,
-com razão, por fazer perguntas técnicas abertas (resolução? qual encoder?)
-sem antes dar contexto suficiente pra formar opinião. Pedir pra alguém
-"escolher" algo que não tem repertório pra avaliar não é colaboração, é
-terceirizar a decisão às cegas. Registrei a correção no `CLAUDE.md`: explicar
-antes de perguntar, ou decidir e justificar quando o risco for baixo e
-reversível.
+**Process lesson (the most important one this session):** I was called
+out, rightly, for asking open-ended technical questions (resolution? which
+encoder?) without giving enough context first to form an opinion. Asking
+someone to "choose" something they have no background to evaluate isn't
+collaboration, it's outsourcing the decision blindly. Recorded the
+correction in `CLAUDE.md`: explain before asking, or decide and justify
+when the risk is low and reversible.
 
-**Próximo passo:** Fase 1 — primeiro programa em C/C++ no Windows: captura
-de tela via Desktop Duplication API, salvando um frame como bitmap. Ainda
-sem NVENC, sem rede — só validar a API de captura.
+**Next step:** Phase 1 — first C/C++ program on Windows: screen capture
+via the Desktop Duplication API, saving a frame as a bitmap. Still no
+NVENC, no network — just validating the capture API.
 
-## 2026-08-27 — Fase 1: `capture_test.cpp` escrito
+## 2026-08-27 — Phase 1: `capture_test.cpp` written
 
-Primeiro código de verdade do projeto: `server-windows/src/capture_test.cpp`.
-Captura um frame da tela via Desktop Duplication API e salva como
+First real code in the project: `server-windows/src/capture_test.cpp`.
+Captures a screen frame via the Desktop Duplication API and saves it as
 `capture.bmp`.
 
-**Conceitos novos neste código:**
-- Desktop Duplication API captura direto na GPU (rápido) em vez de GDI
-  (a API antiga de screenshot, que copia pixel a pixel pela CPU).
-- Frames chegam como texturas Direct3D (memória de vídeo) — não dá pra ler
-  os bytes direto; precisa copiar pra uma textura "staging" antes.
-- `RowPitch` (o "stride" de uma textura) pode ser maior que
-  `largura * bytes_por_pixel` — a GPU alinha linhas em memória por
-  performance. Ignorar isso gera uma imagem com cisalhamento.
-- BMP guarda linhas de baixo pra cima — decisão de design antiga do
-  formato, não bug.
-- `ComPtr` (WRL) evita ter que chamar `Release()` manualmente em toda saída
-  de função, inclusive nos caminhos de erro — mesma ideia de RAII que
-  `std::unique_ptr`, aplicada a interfaces COM.
+**New concepts in this code:**
+- The Desktop Duplication API captures directly on the GPU (fast) instead
+  of GDI (the old screenshot API, which copies pixel by pixel on the CPU).
+- Frames arrive as Direct3D textures (video memory) — you can't read the
+  bytes directly; they need to be copied to a "staging" texture first.
+- `RowPitch` (a texture's "stride") can be larger than
+  `width * bytes_per_pixel` — the GPU aligns rows in memory for
+  performance. Ignoring this produces a sheared/skewed image.
+- BMP stores rows bottom-to-top — an old design decision of the format,
+  not a bug.
+- `ComPtr` (WRL) avoids having to call `Release()` manually on every
+  function exit, including error paths — the same RAII idea as
+  `std::unique_ptr`, applied to COM interfaces.
 
-**Ainda não testado de verdade** — código escrito no Mac, sem acesso ao
-Acer Aspire pra compilar. Próximo passo real é o usuário copiar
-`server-windows/` pro Windows, buildar com CMake (ver README) e reportar
-o resultado (funcionou / erro de build / etc).
+**Not actually tested yet** — code written on the Mac, with no access to
+the Acer Aspire to compile it. The real next step is for the user to copy
+`server-windows/` to Windows, build it with CMake (see README), and report
+back the result (worked / build error / etc).
+
+## 2026-08-27 — Phase 1: Windows toolchain (Visual Studio, NMake, MinGW)
+
+Several rounds before `capture_test` actually compiled:
+- `cmake` not recognized → needed to install Visual Studio / CMake and use
+  the right terminal (Developer Command Prompt).
+- CMake tried to use the NMake generator by default and couldn't find
+  `nmake.exe` on PATH.
+- Switching to the "Visual Studio 17 2022" generator gave a "could not
+  find any instance of Visual Studio" error — `cmake --help` lists
+  generators CMake *knows how* to produce, not what's *installed* on the
+  machine; those are different things.
+- Decided to use MinGW-w64 (via MSYS2) as a lighter alternative to a full
+  Visual Studio install — the same GCC used on Linux/Mac, packaged for
+  Windows.
+
+**Code change prompted by this**: removed the dependency on
+`Microsoft::WRL::ComPtr` (`<wrl/client.h>`), which is specific to
+Microsoft's toolchain and isn't always available on MinGW, and wrote a
+small custom `ComPtr` class (simple RAII for COM pointers) with just what
+the program needs. Lesson: portability across toolchains sometimes costs
+custom code instead of relying on a vendor-specific convenience — trading
+a bit of convenience for not being locked into one install choice.
+
+## 2026-08-27 — Paused: stuck navigating to the project folder in MSYS2
+
+After installing MSYS2 and the packages (`mingw-w64-ucrt-x86_64-gcc`,
+`mingw-w64-ucrt-x86_64-cmake`), the user got stuck trying to navigate to
+the `server-windows/` folder inside the MSYS2 UCRT64 terminal — the `cd
+/c/path/where/you/copied/...` command I gave was a generic placeholder,
+and the real path where the project was copied to on Windows wasn't
+clear ("it's not giving me the path").
+
+**Still unresolved — the build never actually ran this session.** Not
+even `capture_test.exe` was generated yet.
+
+**Agreed with the user**: stop for today. Next session, priority is
+resolving this navigation/path blocker specifically before anything else
+— the minimum goal is getting an `.exe` to build and run on Windows, even
+in the simplest way possible. Ideas to consider next time (not yet
+decided): copying the project to a fixed, simple path (e.g.
+`C:\shadow-glass`) to remove path ambiguity; using Windows Explorer's
+"copy as path" to get the exact path instead of me guessing a
+placeholder; or considering whether the build process itself should be
+simplified further before trying again.
+
+The user also asked whether RAG would make sense for keeping this kind of
+context across sessions — explained that no: RAG is for a corpus too
+large to fit in context (vector search), and what solves this here is much
+simpler (plain text files re-read each session — this log plus Claude's
+memory), with no extra infrastructure needed.
