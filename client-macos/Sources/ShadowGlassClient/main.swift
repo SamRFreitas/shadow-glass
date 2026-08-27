@@ -1,1 +1,1 @@
-print("Shadow Glass client — placeholder, chega código de verdade na Fase 3")
+print("Shadow Glass client — placeholder, real code lands in Phase 3")

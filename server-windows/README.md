@@ -1,27 +1,42 @@
 # server-windows
 
-Servidor Windows (C/C++, build via CMake).
+Windows server (C/C++, built via CMake).
 
-## Fase 1: `capture_test`
+## Phase 1: `capture_test`
 
-Valida só a captura de tela (Desktop Duplication API), sem encode e sem
-rede. Salva um frame como `capture.bmp` na pasta onde rodar.
+Validates screen capture only (Desktop Duplication API), no encode and no
+network. Saves a frame as `capture.bmp` in the folder it runs from.
 
-Este código só compila no Windows (usa D3D11/DXGI). Para buildar, no
-PowerShell/prompt de comando do Visual Studio, dentro de `server-windows/`:
+This code only compiles on Windows (it uses D3D11/DXGI), but it doesn't
+depend on a specific toolchain — you can use Visual Studio (MSVC) or
+MinGW-w64, whichever is available.
+
+**Option A — Visual Studio (MSVC)**, from inside `server-windows/`:
 
 ```
-cmake -B build
-cmake --build build
+cmake -B build -G "Visual Studio 17 2022" -A x64
+cmake --build build --config Debug
 build\Debug\capture_test.exe
 ```
 
-**Verificação**: rode `capture_test.exe`, mova o mouse ou mude algo na tela
-nos 5 segundos seguintes, e abra o `capture.bmp` gerado — deve mostrar a
-tela real do PC no momento da captura. Se `AcquireNextFrame` der timeout,
-é porque nada mudou na tela nesse intervalo (não é bug, é o comportamento
-esperado da API).
+**Option B — MinGW-w64 (via MSYS2)**, a lighter install, no need for the
+full Visual Studio:
 
-Se o build falhar, cole o erro de volta na conversa com o Claude pra
-debugar — ele escreve o código aqui mas não tem acesso a esta máquina pra
-compilar/rodar.
+```
+cmake -B build -G "MinGW Makefiles"
+cmake --build build
+build\capture_test.exe
+```
+
+(requires `mingw-w64-x86_64-gcc` and `mingw-w64-x86_64-cmake` installed
+via MSYS2, with MinGW's `bin` on PATH)
+
+**Verification**: run `capture_test.exe`, move the mouse or change
+something on screen within the next 5 seconds, and open the generated
+`capture.bmp` — it should show the PC's real screen at the moment of
+capture. If `AcquireNextFrame` times out, it's because nothing changed on
+screen in that window (not a bug, that's the API's expected behavior).
+
+If the build fails, paste the error back into the conversation with
+Claude to debug — it writes the code here but has no access to this
+machine to compile/run it.
