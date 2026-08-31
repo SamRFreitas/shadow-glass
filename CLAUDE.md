@@ -96,6 +96,16 @@ followed manually (ask "what did I rule out and why", "is this
 reversible", "what breaks if I choose differently" before closing out an
 ADR).
 
+## Commit convention
+
+Commit messages follow **Conventional Commits**: `type(scope): description`,
+lowercase, imperative mood. Types: `feat` (new functionality), `fix` (bug
+fix), `refactor` (no behavior change), `docs`, `style`, `test`, `chore`
+(maintenance, e.g. dependency updates), `perf`, `ci`. Example:
+`feat(client-macos): add SwiftUI shell with a swappable low-latency transport`.
+If a new situation makes the right type unclear, that gets talked through
+and decided together rather than guessed at.
+
 ## Pedagogical approach
 
 This project prioritizes learning over speed. Explanations of "why"
