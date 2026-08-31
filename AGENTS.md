@@ -96,6 +96,32 @@ followed manually (ask "what did I rule out and why", "is this
 reversible", "what breaks if I choose differently" before closing out an
 ADR).
 
+## Commit convention
+
+Commit messages in this repository follow the **Conventional Commits**
+format: `type(scope): description`, written in lowercase and imperative
+mood (e.g. "add", not "added" or "adds"). The `scope` is optional and
+names the affected area (e.g. `client-macos`, `server-windows`, `deps`).
+
+Use one of these types, in order of how often they come up:
+- `feat` — adding new functionality
+- `fix` — fixing a bug
+- `refactor` — changing code structure without changing behavior
+- `docs` — documentation-only changes (README, ADRs, comments-as-docs)
+- `chore` — maintenance work, e.g. updating a dependency version
+- `style` — formatting/whitespace-only changes, no logic change
+- `test` — adding or updating tests
+- `perf` — a change made specifically for performance
+- `ci` — continuous integration configuration changes
+
+Example: `feat(client-macos): add SwiftUI shell with a swappable
+low-latency transport`.
+
+If you are about to commit something and none of these types clearly
+fits, **stop and ask the user which type to use** instead of guessing —
+this has happened before and the user wants to be consulted on it, not
+have a type picked silently.
+
 ## Pedagogical approach
 
 This project prioritizes learning over speed. Explanations of "why"
