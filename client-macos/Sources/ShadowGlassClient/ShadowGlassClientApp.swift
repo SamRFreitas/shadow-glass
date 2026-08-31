@@ -8,6 +8,10 @@ import SwiftUI
 // `main.swift` placeholder is being removed in this same step.
 @main
 struct ShadowGlassClientApp: App {
+    init() {
+        LibDataChannelSmokeTest.run()
+    }
+
     var body: some Scene {
         WindowGroup {
             ContentView()
