@@ -1,5 +1,44 @@
 # Logbook — Shadow Glass
 
+## 2026-08-31 — Connectivity test, piece 1 and 2
+
+**Piece 1 (Mac UI shell)**: `client-macos/` now has a real SwiftUI app
+(`ShadowGlassClientApp.swift`, replacing the old placeholder `main.swift`)
+— a window with "Shadow Glass", a "Not connected" status text, and a
+"Connect" button that doesn't do anything yet. Confirmed working: opens a
+real window via `swift run`, no Xcode project needed.
+
+**Piece 2 (libdatachannel builds standalone)**: added `libdatachannel` as
+a git submodule under `third_party/` (a dedicated folder for vendored
+external dependencies, one per platform's own build — same idea as
+`node_modules` for Node projects, common convention in C/C++ as
+`third_party/`). Built it standalone with CMake on the Mac first, before
+touching any of our own code, specifically to isolate dependency risk with
+fast feedback (I can test locally here, unlike the Windows side where
+every round-trip needs the user to copy files and report back).
+
+Two missing tools discovered and fixed along the way:
+- No CMake on the Mac — installed via Homebrew (which also wasn't
+  installed yet; installed it too, non-interactively hit a sudo prompt
+  that needed the user to run it themselves in their own terminal).
+- No OpenSSL dev headers (macOS doesn't ship them) — `brew install
+  openssl@3`, then had to pass `-DOPENSSL_ROOT_DIR=/opt/homebrew/opt/openssl@3`
+  explicitly to CMake, since Homebrew doesn't symlink `openssl@3` into the
+  default search path (it's "keg-only" to avoid clashing with the system's
+  own OpenSSL/LibreSSL).
+
+Result: `libdatachannel` built 100%, producing `libdatachannel.0.dylib`
+(arm64). Its own examples folder includes `copy-paste-offerer` /
+`copy-paste-answerer` (and C API equivalents) — a manual-signaling demo
+that's a close match for what we're about to build, worth reading before
+designing our own signaling.
+
+**Design constraint the user set for what comes next**: our own code must
+depend on our own small interface (protocol/abstract class), not directly
+on `libdatachannel`'s API — so swapping to Google's `libwebrtc` later means
+writing a second implementation of that interface, not touching app code.
+Next piece: design that interface (still no real networking wired in yet).
+
 ## 2026-08-27 — Session 0: architecture decision
 
 **What we decided:** drop the initial idea of using RDP/FreeRDP and build a
