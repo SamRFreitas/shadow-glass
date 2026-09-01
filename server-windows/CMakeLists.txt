@@ -11,3 +11,17 @@ endif()
 add_executable(capture_test src/capture_test.cpp)
 target_link_libraries(capture_test PRIVATE d3d11 dxgi)
 set_property(TARGET capture_test PROPERTY CXX_STANDARD 17)
+
+# Connectivity test, piece 7: build libdatachannel as part of our own
+# project (not just standalone in third_party/) and link a real executable
+# against it. NO_EXAMPLES/NO_TESTS off the default ON, since we only need
+# the library itself here, not its bundled example programs/test suite —
+# skipping those cuts build time down noticeably.
+set(NO_EXAMPLES ON CACHE BOOL "" FORCE)
+set(NO_TESTS ON CACHE BOOL "" FORCE)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../third_party/libdatachannel
+                  ${CMAKE_CURRENT_BINARY_DIR}/libdatachannel)
+
+add_executable(datachannel_offer_test src/datachannel_offer_test.cpp)
+target_link_libraries(datachannel_offer_test PRIVATE datachannel)
+set_property(TARGET datachannel_offer_test PROPERTY CXX_STANDARD 17)
