@@ -36,6 +36,14 @@ was slow and error-prone enough that it became the dominant source of
 failures — more than the underlying tech. This is exactly the problem our
 own automatic signaling code (next real piece) exists to remove.
 
+**Next step (piece 9), picking up here next session**: design and write
+our own signaling — a small automatic exchange (likely a plain TCP
+connection between the two machines) that does programmatically exactly
+what we just did by hand: carry the offer, then the answer, then both
+sides' candidates, without a human copy-pasting anything. Once that
+exists, this same "Alow"-style test should work with a single click
+instead of ~10 manual steps.
+
 ## 2026-09-01 — Piece 7 confirmed on Windows; paused before piece 8
 
 `datachannel_offer_test.exe` built and ran on the Acer Aspire, mirroring
