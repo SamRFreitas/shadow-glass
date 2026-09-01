@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Where Things Run — Shadow Glass</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f6f3ec;
+    --panel: #ece4d3;
+    --panel-line: #ddd2b8;
+    --ink: #1b2430;
+    --ink-soft: #4a5468;
+    --accent: #c9722c;
+    --muted: #b9b0a0;
+    --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    --sans: "IBM Plex Sans", -apple-system, "Segoe UI", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #11151c;
+      --panel: #1a2029;
+      --panel-line: #2a3240;
+      --ink: #e8e3d6;
+      --ink-soft: #a7b0c2;
+      --accent: #e79350;
+      --muted: #4a5568;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--sans); line-height: 1.6; }
+  .page { max-width: 720px; margin: 0 auto; padding: 48px 24px 96px; }
+
+  .kicker { font-family: var(--mono); font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); }
+  h1 { font-family: var(--mono); font-size: clamp(26px, 5vw, 36px); font-weight: 600; margin: 8px 0 20px; text-wrap: balance; }
+  h2 { font-family: var(--mono); font-size: 19px; font-weight: 600; margin: 0 0 12px; }
+  p { max-width: 62ch; }
+
+  .headline {
+    font-size: 18px; font-weight: 500; background: var(--panel);
+    border-left: 4px solid var(--accent); padding: 16px 20px; border-radius: 6px;
+    margin: 0 0 40px;
+  }
+
+  section { margin: 48px 0; padding-top: 40px; border-top: 1px solid var(--panel-line); }
+  section:first-of-type { border-top: none; padding-top: 0; }
+
+  figure { margin: 20px 0; padding: 18px; background: var(--panel); border: 1px solid var(--panel-line); border-radius: 10px; }
+  figure svg { display: block; width: 100%; height: auto; color: var(--ink-soft); }
+  figure svg text { font-family: var(--mono); fill: currentColor; }
+  figure svg .strong { fill: var(--ink); font-weight: 600; }
+  figure svg .accent { color: var(--accent); }
+  figure svg .muted { color: var(--muted); }
+  figcaption { font-size: 13.5px; color: var(--ink-soft); margin-top: 12px; }
+
+  code { font-family: var(--mono); font-size: 0.9em; background: var(--panel); border: 1px solid var(--panel-line); border-radius: 4px; padding: 0.1em 0.35em; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 14.5px; margin: 8px 0; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--panel-line); vertical-align: top; }
+  th { font-family: var(--mono); font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-soft); font-weight: 600; }
+  .tag { display: inline-block; font-family: var(--mono); font-size: 11px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--panel-line); white-space: nowrap; }
+  .tag.mac { color: var(--accent); border-color: var(--accent); }
+
+  dl.glossary { display: grid; grid-template-columns: max-content 1fr; gap: 10px 16px; font-size: 14.5px; margin: 16px 0; }
+  dl.glossary dt { font-family: var(--mono); color: var(--accent); font-weight: 600; white-space: nowrap; }
+  dl.glossary dd { margin: 0; color: var(--ink-soft); }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="kicker">Shadow Glass — field notes</div>
+  <h1>Where things run</h1>
+
+  <p class="headline">
+    The one sentence that matters most: <strong>Windows isn't part of this
+    story yet.</strong> Everything that has run so far happened inside a
+    single thing — the Mac app — which <em>calls functions that live
+    inside</em> a C library. That's not the same as "connecting" to it
+    over a network; it's all one program.
+  </p>
+
+  <section>
+    <h2>The two machines, right now</h2>
+    <figure>
+      <svg viewBox="0 0 640 300" role="img" aria-label="The Mac contains, nested inside it, the Swift client app, and inside that app lives the libdatachannel C library. The Acer Aspire Windows machine sits separate and empty, with no connection drawn between the two, because nothing has left the Mac yet.">
+        <rect x="10" y="10" width="380" height="260" rx="14" fill="none" stroke="currentColor" stroke-width="2"></rect>
+        <text x="30" y="42" font-size="15" class="strong">YOUR MAC</text>
+
+        <rect x="30" y="60" width="340" height="180" rx="10" fill="none" stroke="currentColor" class="accent" stroke-width="1.5"></rect>
+        <text x="46" y="86" font-size="13" class="accent strong">Swift client app</text>
+        <text x="46" y="106" font-size="11.5" fill="currentColor">our own code</text>
+
+        <rect x="56" y="130" width="290" height="90" rx="8" fill="none" stroke="currentColor"></rect>
+        <text x="70" y="154" font-size="12.5" class="strong">libdatachannel</text>
+        <text x="70" y="172" font-size="11" fill="currentColor">C library, downloaded —</text>
+        <text x="70" y="188" font-size="11" fill="currentColor">lives INSIDE the app,</text>
+        <text x="70" y="204" font-size="11" fill="currentColor">not a separate program</text>
+
+        <rect x="440" y="10" width="190" height="260" rx="14" fill="none" stroke="currentColor" stroke-dasharray="5 4" class="muted"></rect>
+        <text x="460" y="42" font-size="15" class="muted strong">ACER ASPIRE</text>
+        <text x="460" y="60" font-size="11.5" class="muted">(Windows)</text>
+        <text x="460" y="110" font-size="12" class="muted">nothing running</text>
+        <text x="460" y="128" font-size="12" class="muted">for this test</text>
+        <text x="460" y="160" font-size="10.5" class="muted">only a separate,</text>
+        <text x="460" y="176" font-size="10.5" class="muted">unrelated exercise</text>
+        <text x="460" y="192" font-size="10.5" class="muted">lives there (screen</text>
+        <text x="460" y="208" font-size="10.5" class="muted">capture, no network)</text>
+
+        <text x="400" y="145" font-size="18" text-anchor="middle" class="muted">✕</text>
+        <text x="400" y="245" font-size="10.5" text-anchor="middle" class="muted">no connection</text>
+        <text x="400" y="258" font-size="10.5" text-anchor="middle" class="muted">yet</text>
+      </svg>
+      <figcaption>
+        The library isn't a "third machine" or a third program — it's just
+        more code sitting inside the same Mac app, like a tool kept in
+        that app's own drawer.
+      </figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <h2>Which file does what</h2>
+    <table>
+      <thead><tr><th>Where</th><th>File</th><th>What it is</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><span class="tag mac">Mac</span></td>
+          <td><code>ShadowGlassClientApp.swift</code></td>
+          <td>our code — the app's window, starts everything</td>
+        </tr>
+        <tr>
+          <td><span class="tag mac">Mac</span></td>
+          <td><code>LibDataChannelOfferTest.swift</code></td>
+          <td>our code — calls the library, prints the result</td>
+        </tr>
+        <tr>
+          <td><span class="tag mac">Mac</span></td>
+          <td><code>CLibDataChannel/</code></td>
+          <td>not really our code — just a "bridge" so Swift can see the C library</td>
+        </tr>
+        <tr>
+          <td><span class="tag mac">Mac</span></td>
+          <td><code>third_party/libdatachannel/</code></td>
+          <td>the C library itself, downloaded from another project — does the real work</td>
+        </tr>
+        <tr>
+          <td>Windows</td>
+          <td><code>capture_test.cpp</code></td>
+          <td>separate exercise (Phase 1), takes a screenshot — not part of this test</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>What actually happened, step by step — all inside the Mac</h2>
+    <figure>
+      <svg viewBox="0 0 480 400" role="img" aria-label="Five steps in a vertical sequence, all inside the same Mac app: the app opens, our code calls the library, the library builds an offer, hands the text back to our code, and our code just prints it.">
+        <rect x="10" y="10" width="460" height="380" rx="12" fill="none" stroke="currentColor" stroke-dasharray="4 3"></rect>
+        <text x="240" y="34" font-size="11" fill="currentColor" text-anchor="middle">all of this runs inside the same app, on the Mac — nothing leaves over the network</text>
+
+        <defs>
+          <marker id="arrowV" viewBox="0 0 8 8" refX="4" refY="7" markerWidth="7" markerHeight="7" orient="auto">
+            <path d="M0,0 L8,0 L4,8 z" fill="currentColor"></path>
+          </marker>
+        </defs>
+
+        <g font-size="13">
+          <rect x="90" y="54" width="300" height="40" rx="6" fill="none" stroke="currentColor"></rect>
+          <text x="240" y="79" text-anchor="middle">1. Mac app opens</text>
+
+          <line x1="240" y1="94" x2="240" y2="122" stroke="currentColor" marker-end="url(#arrowV)"></line>
+
+          <rect x="90" y="124" width="300" height="40" rx="6" fill="none" stroke="currentColor"></rect>
+          <text x="240" y="149" text-anchor="middle" font-size="12">2. our Swift calls the library</text>
+
+          <line x1="240" y1="164" x2="240" y2="192" stroke="currentColor" marker-end="url(#arrowV)"></line>
+
+          <rect x="90" y="194" width="300" height="40" rx="6" fill="none" stroke="currentColor" class="accent"></rect>
+          <text x="240" y="219" text-anchor="middle" font-size="12" class="accent">3. library (C) builds the text</text>
+
+          <line x1="240" y1="234" x2="240" y2="262" stroke="currentColor" marker-end="url(#arrowV)"></line>
+
+          <rect x="90" y="264" width="300" height="40" rx="6" fill="none" stroke="currentColor" class="accent"></rect>
+          <text x="240" y="289" text-anchor="middle" font-size="12" class="accent">4. text comes back to our Swift</text>
+
+          <line x1="240" y1="304" x2="240" y2="332" stroke="currentColor" marker-end="url(#arrowV)"></line>
+
+          <rect x="90" y="334" width="300" height="40" rx="6" fill="none" stroke="currentColor"></rect>
+          <text x="240" y="359" text-anchor="middle" font-size="12">5. our Swift prints the text</text>
+        </g>
+      </svg>
+      <figcaption>
+        Steps 3 and 4 are the library doing its work — but notice it never
+        leaves the dashed frame. The text (the "offer") only exists in the
+        app's memory; printing it (step 5) is just for us to see it, not a
+        real send.
+      </figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <h2>Why the text took a while to show up: buffers</h2>
+    <p>
+      This part is entirely inside the Mac too — it has nothing to do with
+      the library or Windows. It's about how the Mac's own operating
+      system decides <em>when</em> to actually display text your program
+      asks it to print.
+    </p>
+    <figure>
+      <svg viewBox="0 0 640 230" role="img" aria-label="Print calls do not go straight to the screen. They go into a buffer, a small holding area in memory. When output goes to a real terminal, the buffer empties after every line. When output goes to a file or pipe instead, the buffer holds everything until it fills up or the program exits.">
+        <text x="0" y="20" font-size="12" class="strong">print() never writes directly — it goes into a buffer first</text>
+
+        <rect x="0" y="36" width="130" height="34" rx="6" fill="none" stroke="currentColor"></rect>
+        <text x="65" y="58" text-anchor="middle" font-size="12">print("...")</text>
+        <text x="145" y="58" font-size="16">→</text>
+        <rect x="165" y="36" width="150" height="34" rx="6" fill="none" stroke="currentColor" stroke-dasharray="3 3"></rect>
+        <text x="240" y="58" text-anchor="middle" font-size="11.5">buffer (in memory)</text>
+
+        <text x="0" y="112" font-size="12" class="strong">→ real terminal: flushes after every line</text>
+        <text x="330" y="58" font-size="16">→</text>
+        <rect x="350" y="36" width="120" height="34" rx="6" fill="none" stroke="currentColor" class="accent"></rect>
+        <text x="410" y="58" text-anchor="middle" font-size="11.5" class="accent">screen, now</text>
+
+        <text x="0" y="150" font-size="12" class="strong">→ redirected to a file: waits</text>
+        <rect x="0" y="164" width="130" height="34" rx="6" fill="none" stroke="currentColor"></rect>
+        <text x="65" y="186" text-anchor="middle" font-size="12">print() × 3</text>
+        <text x="145" y="186" font-size="16">→</text>
+        <rect x="165" y="164" width="150" height="34" rx="6" fill="none" stroke="currentColor" stroke-dasharray="3 3"></rect>
+        <text x="240" y="186" text-anchor="middle" font-size="11">sitting in the buffer…</text>
+        <text x="330" y="186" font-size="16" class="accent">→</text>
+        <rect x="350" y="164" width="180" height="34" rx="6" fill="none" stroke="currentColor" class="accent"></rect>
+        <text x="440" y="186" text-anchor="middle" font-size="10.5" class="accent">file, only once full or exit</text>
+      </svg>
+      <figcaption>
+        A terminal flushes after every newline by default; a file or pipe
+        doesn't, because the system assumes it's more efficient to batch
+        writes. Fixed with <code>setvbuf(stdout, nil, _IOLBF, 0)</code> —
+        forces line-by-line flushing even when redirected.
+      </figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <h2>The acronyms — and when they'll actually start mattering</h2>
+    <p>
+      None of these apply to anything we tested yet, because nothing left
+      the Mac. They describe what happens <strong>starting at the exact
+      moment the offer text tries to cross to Windows</strong> — the next
+      piece we're building.
+    </p>
+    <figure>
+      <svg viewBox="0 0 640 310" role="img" aria-label="A stack of four layers from bottom to top: IP gets a packet to the right machine, UDP delivers loose unordered packets, DTLS encrypts what travels inside those packets, and SCTP turns the encrypted stream into ordered reliable messages carrying our own text.">
+        <g font-size="12.5">
+          <rect x="0" y="230" width="640" height="50" fill="none" stroke="currentColor"></rect>
+          <text x="16" y="260" class="strong">IP</text>
+          <text x="120" y="260" fill="currentColor">gets a packet to the right machine</text>
+
+          <rect x="0" y="175" width="640" height="50" fill="none" stroke="currentColor"></rect>
+          <text x="16" y="205" class="strong">UDP</text>
+          <text x="120" y="205" fill="currentColor">delivers packets fast, no guarantee of order</text>
+
+          <rect x="0" y="120" width="640" height="50" fill="none" stroke="currentColor" class="accent"></rect>
+          <text x="16" y="150" class="strong accent">DTLS</text>
+          <text x="120" y="150" class="accent">encrypts everything above — this is the layer OpenSSL builds</text>
+
+          <rect x="0" y="65" width="640" height="50" fill="none" stroke="currentColor"></rect>
+          <text x="16" y="95" class="strong">SCTP</text>
+          <text x="120" y="95" fill="currentColor">adds ordering and reliability on top of DTLS</text>
+
+          <rect x="0" y="10" width="640" height="50" fill="none" stroke="currentColor"></rect>
+          <text x="16" y="40" class="strong">DataChannel</text>
+          <text x="170" y="40" fill="currentColor">"Hello Mac" — our own message, the only layer we write</text>
+        </g>
+        <text x="0" y="298" font-size="10.5" fill="currentColor">this whole stack lives on both machines at once, once a real connection exists</text>
+      </svg>
+      <figcaption>
+        Read it as our message wrapped in envelopes before it leaves a
+        machine: text → SCTP envelope (ordering) → DTLS envelope
+        (encryption) → plain UDP/IP. The other side unwraps in reverse.
+      </figcaption>
+    </figure>
+
+    <dl class="glossary">
+      <dt>UDP</dt><dd>sends packets over the network with no built-in guarantee they arrive, or arrive in order.</dd>
+      <dt>DTLS</dt><dd>"TLS for UDP" — the same encryption behind HTTPS, adapted for unreliable packets.</dd>
+      <dt>SCTP</dt><dd>adds back ordering/reliability once encryption is in place — what a DataChannel is built on.</dd>
+      <dt>ICE / SDP</dt><dd>the "how do we find each other and agree on a connection" negotiation — the offer text from our test is SDP; its ufrag/pwd fields are ICE credentials.</dd>
+    </dl>
+  </section>
+</div>
+</body>
+</html>
