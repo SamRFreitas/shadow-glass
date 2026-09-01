@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Anatomy of an Offer — Shadow Glass</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f6f3ec; --panel: #ece4d3; --panel-line: #ddd2b8;
+    --ink: #1b2430; --ink-soft: #4a5468; --accent: #c9722c; --muted: #b9b0a0;
+    --legacy: #8a93a6; --security: #b23b3b; --ice: #2f7d5f; --data: #2a5db0;
+    --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    --sans: "IBM Plex Sans", -apple-system, "Segoe UI", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #11151c; --panel: #1a2029; --panel-line: #2a3240;
+      --ink: #e8e3d6; --ink-soft: #a7b0c2; --accent: #e79350; --muted: #4a5568;
+      --legacy: #8f98a8; --security: #e0716f; --ice: #5fbf95; --data: #6fa3e0;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--sans); line-height: 1.6; }
+  .page { max-width: 780px; margin: 0 auto; padding: 48px 24px 96px; }
+  .kicker { font-family: var(--mono); font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); }
+  h1 { font-family: var(--mono); font-size: clamp(26px, 5vw, 36px); font-weight: 600; margin: 8px 0 20px; text-wrap: balance; }
+  h2 { font-family: var(--mono); font-size: 19px; font-weight: 600; margin: 0 0 12px; }
+  p { max-width: 66ch; }
+  .headline { font-size: 17px; font-weight: 500; background: var(--panel); border-left: 4px solid var(--accent); padding: 16px 20px; border-radius: 6px; margin: 0 0 40px; max-width: none; }
+  section { margin: 48px 0; padding-top: 36px; border-top: 1px solid var(--panel-line); }
+  section:first-of-type { border-top: none; padding-top: 0; }
+  code { font-family: var(--mono); font-size: 0.9em; background: var(--panel); border: 1px solid var(--panel-line); border-radius: 4px; padding: 0.1em 0.35em; }
+
+  .sdp-table { width: 100%; border-collapse: collapse; font-size: 13.5px; margin: 16px 0; }
+  .sdp-table td { padding: 6px 10px; vertical-align: top; border-bottom: 1px solid var(--panel-line); }
+  .sdp-table td.line { font-family: var(--mono); white-space: pre; }
+  .sdp-table td.exp { color: var(--ink-soft); font-size: 13px; }
+  .sdp-table tr.legacy td.line { color: var(--legacy); }
+  .sdp-table tr.security td.line { color: var(--security); font-weight: 600; }
+  .sdp-table tr.ice td.line { color: var(--ice); font-weight: 600; }
+  .sdp-table tr.data td.line { color: var(--data); font-weight: 600; }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 12.5px; margin: 4px 0 20px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+
+  figure { margin: 20px 0; padding: 18px; background: var(--panel); border: 1px solid var(--panel-line); border-radius: 10px; }
+  figure svg { display: block; width: 100%; height: auto; color: var(--ink-soft); }
+  figure svg text { font-family: var(--mono); fill: currentColor; }
+  figure svg .strong { fill: var(--ink); font-weight: 600; }
+  figcaption { font-size: 13.5px; color: var(--ink-soft); margin-top: 12px; }
+
+  .diff-box { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 16px 0; }
+  .diff-box > div { background: var(--panel); border: 1px solid var(--panel-line); border-radius: 8px; padding: 14px; font-family: var(--mono); font-size: 13px; }
+  .diff-box .diff-label { font-family: var(--sans); font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-soft); margin-bottom: 8px; }
+  .diff-box mark { background: transparent; color: var(--accent); font-weight: 700; }
+  @media (max-width: 560px) { .diff-box { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="kicker">Shadow Glass — field notes</div>
+  <h1>Anatomy of an Offer</h1>
+  <p class="headline">
+    <strong>SDP</strong> (Session Description Protocol) is the plain-text
+    format behind every "Local Description" we've seen. It's not something
+    WebRTC invented — it's a 25+ year old format, originally built for
+    scheduling multicast video conferences, that WebRTC reused because it
+    already existed. That's why some lines below look like unexplained
+    leftovers: they are.
+  </p>
+
+  <section>
+    <h2>The offer, line by line</h2>
+    <p>This is a real offer our Mac generated during testing. Every line is colored by what it's actually for.</p>
+
+    <div class="legend">
+      <span><i class="dot" style="background:var(--legacy)"></i>Legacy SDP, barely used by WebRTC</span>
+      <span><i class="dot" style="background:var(--security)"></i>Security (DTLS)</span>
+      <span><i class="dot" style="background:var(--ice)"></i>ICE (finding a path)</span>
+      <span><i class="dot" style="background:var(--data)"></i>Data channel config</span>
+    </div>
+
+    <table class="sdp-table">
+      <tr class="legacy"><td class="line">v=0</td><td class="exp">SDP format version. Always 0 — there has only ever been one.</td></tr>
+      <tr class="legacy"><td class="line">o=rtc 4159915632 0 IN IP4 127.0.0.1</td><td class="exp">"Origin" line: a fixed username (<code>rtc</code>), a random session ID, a version counter, and a placeholder address. The address here is never actually used to connect — real addresses live in the candidates further down.</td></tr>
+      <tr class="legacy"><td class="line">s=-</td><td class="exp">"Session name", required by the spec, meaningless for WebRTC — just a dash.</td></tr>
+      <tr class="legacy"><td class="line">t=0 0</td><td class="exp">Start/stop time — a holdover from SDP's original job of scheduling a conference at a fixed time. WebRTC connections aren't scheduled, so this is always "0 0".</td></tr>
+      <tr><td class="line">a=group:BUNDLE 0</td><td class="exp">"Bundle everything under identifier 0 onto one connection." We only have one thing (our data channel), so this doesn't do much visible work here — it matters more once audio/video tracks are added later.</td></tr>
+      <tr><td class="line">a=msid-semantic:WMS *</td><td class="exp">Media-stream bookkeeping, mostly relevant to audio/video tracks — required by the spec, inert for a plain data channel.</td></tr>
+      <tr class="ice"><td class="line">a=ice-options:ice2,trickle trickle</td><td class="exp">Declares "trickle ICE" support — candidates can be sent one at a time as they're found, instead of waiting to gather them all first. This is exactly why we saw two separate "Local Candidate" printouts instead of one block.</td></tr>
+      <tr class="security"><td class="line">a=fingerprint:sha-256 19:1C:1F...</td><td class="exp">The hash of this side's DTLS certificate. Generated by OpenSSL. During the handshake, the other side checks the certificate it receives against this exact fingerprint — proof it's talking to who it thinks it's talking to.</td></tr>
+      <tr class="data"><td class="line">m=application 9 UDP/DTLS/SCTP webrtc-datachannel</td><td class="exp">The actual offer: "application" data (not audio/video), over the exact UDP → DTLS → SCTP stack from our earlier diagram, formatted as a WebRTC data channel. The port <code>9</code> is a placeholder, same story as the address above.</td></tr>
+      <tr class="legacy"><td class="line">c=IN IP4 0.0.0.0</td><td class="exp">Another placeholder address, same reason as the "origin" line.</td></tr>
+      <tr><td class="line">a=mid:0</td><td class="exp">This line's own identifier, matching the "0" in the BUNDLE group above.</td></tr>
+      <tr class="data"><td class="line">a=sendrecv</td><td class="exp">This side will both send and receive (not one-way).</td></tr>
+      <tr class="data"><td class="line">a=sctp-port:5000</td><td class="exp">The SCTP layer's own port number — a logical port inside the encrypted tunnel, unrelated to any actual network/UDP port.</td></tr>
+      <tr class="data"><td class="line">a=max-message-size:262144</td><td class="exp">Largest single message this side accepts on the data channel: 262144 bytes (256 KB).</td></tr>
+      <tr class="security"><td class="line">a=setup:actpass</td><td class="exp">DTLS role negotiation. <code>actpass</code> means "I can play either role, you (the answerer) decide" — only the offering side is allowed to say this.</td></tr>
+      <tr class="ice"><td class="line">a=ice-ufrag:/aVb</td><td class="exp">ICE username fragment — half of a short-lived password pair.</td></tr>
+      <tr class="ice"><td class="line">a=ice-pwd:Lw+1oFBLTzcEgipgNMwLB6</td><td class="exp">The other half. Together, these let each side prove to the other "the candidates I'm about to send you really came from me" during connectivity checks.</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <h2>Who actually generates each part</h2>
+    <p>
+      Our own code never builds this text by hand — it just calls one
+      function (<code>createDataChannel</code>) and libdatachannel
+      assembles the whole thing, pulling pieces from the different
+      libraries doing the real work underneath.
+    </p>
+    <figure>
+      <svg viewBox="0 0 680 260" role="img" aria-label="Four horizontal bands, each naming which library produces which part of the SDP text: our own code triggers the whole thing and supplies the data-channel lines, OpenSSL supplies the security fingerprint line, libjuice supplies the ICE lines and candidates, and usrsctp supplies the SCTP port line.">
+        <g font-size="12.5">
+          <rect x="0" y="200" width="680" height="50" fill="none" stroke="currentColor"></rect>
+          <text x="16" y="222" class="strong">our code</text>
+          <text x="16" y="240" fill="currentColor">calls createDataChannel() — triggers everything below, supplies m=/a=mid/a=sendrecv</text>
+
+          <rect x="0" y="145" width="680" height="50" fill="none" stroke="currentColor" style="color:var(--data)"></rect>
+          <text x="16" y="167" class="strong" style="fill:var(--data)">usrsctp</text>
+          <text x="16" y="185" fill="currentColor" style="color:var(--data)">bundled SCTP stack — supplies a=sctp-port, a=max-message-size</text>
+
+          <rect x="0" y="90" width="680" height="50" fill="none" stroke="currentColor" style="color:var(--ice)"></rect>
+          <text x="16" y="112" class="strong" style="fill:var(--ice)">libjuice</text>
+          <text x="16" y="130" fill="currentColor" style="color:var(--ice)">bundled ICE agent — supplies a=ice-options, a=ice-ufrag/pwd, and every candidate line</text>
+
+          <rect x="0" y="35" width="680" height="50" fill="none" stroke="currentColor" style="color:var(--security)"></rect>
+          <text x="16" y="57" class="strong" style="fill:var(--security)">OpenSSL</text>
+          <text x="16" y="75" fill="currentColor" style="color:var(--security)">generates the DTLS certificate — supplies a=fingerprint, a=setup</text>
+        </g>
+      </svg>
+      <figcaption>
+        The legacy lines (v=, o=, s=, t=, c=) aren't "generated" by any of
+        these in a meaningful sense — libdatachannel just fills them with
+        fixed placeholders, since the SDP format requires them to be present.
+      </figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <h2>A candidate line, decoded</h2>
+    <p>Candidates are sent separately from the description (remember the "Local Candidate" printouts). One real example:</p>
+    <p style="font-family:var(--mono); font-size:13.5px; background:var(--panel); border:1px solid var(--panel-line); border-radius:6px; padding:12px; max-width:none;">
+      a=candidate:2 1 UDP 2114977535 192.168.15.4 62505 typ host
+    </p>
+    <table class="sdp-table">
+      <tr><td class="line">2</td><td class="exp">"Foundation" — groups candidates discovered the same way, for ICE's internal bookkeeping.</td></tr>
+      <tr><td class="line">1</td><td class="exp">Component ID (always 1 for a plain data channel).</td></tr>
+      <tr><td class="line">UDP</td><td class="exp">Transport for this candidate.</td></tr>
+      <tr><td class="line">2114977535</td><td class="exp">Priority — a computed number ICE uses to decide which candidate to try connecting with first.</td></tr>
+      <tr class="ice"><td class="line">192.168.15.4</td><td class="exp">The real address — this is the first place an actual, usable IP shows up (the earlier placeholder addresses in the description never mattered).</td></tr>
+      <tr class="ice"><td class="line">62505</td><td class="exp">The real UDP port.</td></tr>
+      <tr><td class="line">typ host</td><td class="exp">Candidate type: a direct local network address. (Other types exist — "srflx" via STUN, "relay" via TURN — for when a direct path isn't possible; we don't see those on a plain home LAN.)</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <h2>Offer vs. answer: the one line that actually differs</h2>
+    <p>Line for line, an offer and an answer look almost identical — everything above repeats with fresh random values. Only one attribute changes meaning:</p>
+    <div class="diff-box">
+      <div><div class="diff-label">Offer (Mac)</div>a=setup:<mark>actpass</mark></div>
+      <div><div class="diff-label">Answer (Windows)</div>a=setup:<mark>active</mark></div>
+    </div>
+    <p>
+      The offerer proposes either DTLS role is fine; the answerer has to
+      commit to one. This exact detail is how we confirmed, reading a
+      wall of near-identical text during testing, which block was actually
+      which.
+    </p>
+  </section>
+</div>
+</body>
+</html>
