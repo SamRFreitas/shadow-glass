@@ -1,5 +1,25 @@
 # Logbook — Shadow Glass
 
+## 2026-09-01 — Piece 7 confirmed on Windows; paused before piece 8
+
+`datachannel_offer_test.exe` built and ran on the Acer Aspire, mirroring
+what was already confirmed on the Mac — both sides can now independently
+create a `PeerConnection`, create a `DataChannel`, and print their own SDP
+offer.
+
+**Idea to pick back up next session, not yet tried**: `libdatachannel`
+ships two working example programs, `offerer` and `answerer`
+(`third_party/libdatachannel/examples/copy-paste/`), already built on
+both machines as a side effect of piece 6's standalone build
+(`third_party/libdatachannel/build/examples/copy-paste/...`). They
+implement a full manual offer → answer → ICE candidate exchange via
+copy-pasting text between two consoles. Plan: run `offerer` on one machine
+and `answerer` on the other, copy-paste between them by hand, and see if
+the `DataChannel` actually opens for real between Mac and Windows — using
+the library's own tested reference implementation, before writing our own
+automatic signaling. User didn't get to try this yet (couldn't locate the
+executable) — pick this up first next time.
+
 ## 2026-09-01 — Connectivity test, piece 6: libdatachannel builds on Windows too
 
 Confirmed `third_party/libdatachannel` builds standalone on the Acer
