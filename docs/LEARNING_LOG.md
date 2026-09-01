@@ -1,5 +1,41 @@
 # Logbook — Shadow Glass
 
+## 2026-09-01 — Piece 8: first real Mac ↔ Windows connection
+
+Milestone: a `DataChannel` opened for real between the MacBook Air and the
+Acer Aspire over the home LAN, and a text message ("Alow") sent from the
+Mac's `offerer` was received by the Windows `answerer.exe` — the first
+genuine end-to-end connection of the project (Phase 2 of the roadmap,
+concretely proven). Done via manual copy-paste using libdatachannel's own
+`copy-paste` example programs, not our own code yet.
+
+**It took several failed attempts to get here — worth remembering why:**
+- Ran the wrong executable on Windows once (`offerer.exe` instead of
+  `answerer.exe`) — both being offerers caused an immediate `abort()`.
+- After restarting, skipped re-entering the remote candidates (only
+  re-did the description step) — connection had no path to attempt and
+  went to `failed`/`closed`.
+- Hit a `DTLS handshake timeout` twice even with a valid offer/answer/
+  candidate exchange, once even after retrying quickly. First suspected
+  the Windows Firewall; the user proposed a competing theory (the human
+  copy-paste round-trip, done slowly over email/Discord between two
+  physical machines, simply took longer than the handshake's timeout
+  window) — technically the more likely explanation, since the failure
+  was specifically at the DTLS step (which only starts *after* ICE has
+  already found a usable candidate pair), not at ICE itself.
+- What actually fixed it: **just retrying with a fully fresh pair of
+  processes** — no firewall change was needed. The failed attempt had
+  left one side (`Transport::recv`) logging "dropping incoming message,
+  no receive callback", i.e. real UDP packets were already arriving from
+  the other machine — evidence the network path itself was fine, and the
+  problem was session/state confusion from earlier attempts, not a block.
+
+**Process note**: doing this by hand (copy console output, paste into an
+email or Discord message, switch machines, paste into the other console)
+was slow and error-prone enough that it became the dominant source of
+failures — more than the underlying tech. This is exactly the problem our
+own automatic signaling code (next real piece) exists to remove.
+
 ## 2026-09-01 — Piece 7 confirmed on Windows; paused before piece 8
 
 `datachannel_offer_test.exe` built and ran on the Acer Aspire, mirroring
