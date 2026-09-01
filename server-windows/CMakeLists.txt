@@ -25,3 +25,16 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../third_party/libdatachannel
 add_executable(datachannel_offer_test src/datachannel_offer_test.cpp)
 target_link_libraries(datachannel_offer_test PRIVATE datachannel)
 set_property(TARGET datachannel_offer_test PROPERTY CXX_STANDARD 17)
+
+# datachannel is built as a DLL (BUILD_SHARED_LIBS defaults ON), and it
+# lands in a different build subfolder than datachannel_offer_test.exe
+# because of how add_subdirectory() lays out per-target output. Windows
+# only looks for a DLL next to the .exe (or on PATH) when you just
+# double-click it, not in other build folders — so without this, running
+# the .exe directly fails with "datachannel.dll was not found". This copies
+# the freshly built DLL next to the .exe after every build, automatically.
+add_custom_command(TARGET datachannel_offer_test POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        $<TARGET_FILE:datachannel>
+        $<TARGET_FILE_DIR:datachannel_offer_test>
+)
