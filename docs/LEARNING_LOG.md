@@ -1,5 +1,30 @@
 # Logbook — Shadow Glass
 
+## 2026-09-01 — Connectivity test, piece 5: real SDP offer + a buffering bug
+
+`LibDataChannelOfferTest.swift` replaces the piece 4 smoke test: creates a
+PeerConnection, sets a local-description callback via libdatachannel's
+"user pointer" mechanism (the C-callback equivalent of a JS closure
+capturing scope — a C function pointer can't capture anything, so the
+library hands the same opaque pointer back to every callback instead),
+then creates a DataChannel, which — as the offering side — makes
+libdatachannel start negotiating on its own and produce a real SDP offer.
+Printed it to the console; nothing sent over the network yet.
+
+**Bug found and fixed along the way**: the first test run produced no
+visible output at all for 6+ seconds, even though (it turned out) the
+offer had actually been generated in milliseconds. Cause: stdout is
+"fully buffered" (not flushed until the buffer fills or the process
+exits) whenever it isn't attached to a real terminal — which is exactly
+what happens when output is redirected to a file for testing. A handful
+of `print()` calls wasn't enough data to trigger an automatic flush.
+Fixed with `setvbuf(stdout, nil, _IOLBF, 0)` (line-buffered: flush after
+every newline) at startup. Confirmed by re-running with heavy
+`RTC_LOG_VERBOSE` logging first — the large log volume flushed the buffer
+by accident, which is what revealed the offer had been there all along —
+then fixing buffering directly and confirming the same output now shows
+up in under 2 seconds with `RTC_LOG_WARNING` (much quieter) instead.
+
 ## 2026-08-31 — Connectivity test, piece 1 and 2
 
 **Piece 1 (Mac UI shell)**: `client-macos/` now has a real SwiftUI app

@@ -9,7 +9,7 @@ import SwiftUI
 @main
 struct ShadowGlassClientApp: App {
     init() {
-        LibDataChannelSmokeTest.run()
+        LibDataChannelOfferTest.run()
     }
 
     var body: some Scene {
