@@ -59,6 +59,12 @@ Each phase delivers something that runs end-to-end, even if incomplete.
   per file, numbered. Plain Markdown, nothing Claude-specific.
 - `docs/LEARNING_LOG.md` — logbook: one entry per work session, recording
   what was learned and why.
+- `docs/SETUP.md` — a checklist of every dependency needed to build the
+  project on each platform (macOS and Windows), with exact install
+  commands, download links, and CMake flags. Different purpose from the
+  learning log: the log tells the story of what happened and why in the
+  order it happened; this file only answers "what do I need installed
+  right now to build this?" — always kept current, not a history.
 - `docs/protocol.md` — to be created in Phase 2: how the server and client
   find each other (signaling) and the payload format exchanged over the
   `libwebrtc` DataChannel. It's the only "shared contract" between C/C++
