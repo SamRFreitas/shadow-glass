@@ -1,5 +1,35 @@
 # Logbook — Shadow Glass
 
+## 2026-09-01 — Connectivity test, piece 6: libdatachannel builds on Windows too
+
+Confirmed `third_party/libdatachannel` builds standalone on the Acer
+Aspire (MSVC via Visual Studio 18, matching piece 2's validation on the
+Mac). Real detour along the way, worth remembering:
+
+- The Windows machine had no real git clone yet — only a manual copy of
+  `server-windows/` from the old Phase 1 exercise. Fixed by pushing the
+  Mac's commits and doing `git clone --recurse-submodules` on Windows.
+- `find_package(OpenSSL)` failed the same way it did on the Mac, but the
+  fix was different: this Windows machine's vcpkg (bundled with Visual
+  Studio) only supports "manifest mode" (a `vcpkg.json` declaring
+  dependencies, auto-installed during CMake configure) — no classic
+  `vcpkg install <package>`. Wrote a manifest for it, but for reasons
+  never fully root-caused, the manifest install step never actually ran
+  (no install messages appeared in the log at all).
+- Worked around it by sidestepping vcpkg for OpenSSL specifically:
+  downloaded the official prebuilt Win64 OpenSSL installer directly
+  (Shining Light Productions / slproweb.com), verified its SHA256 against
+  the hash published in the maintainer's own `opensslhashes` repo before
+  running it (Windows SmartScreen flagged the download — verifying the
+  hash, not just trusting the warning or trusting Claude, was the right
+  call), then pointed CMake straight at the install with
+  `-DOPENSSL_ROOT_DIR="C:\Program Files\OpenSSL-Win64"`. Configure and
+  build both succeeded after that.
+
+**Next step**: write the actual Windows-side C++ code that links against
+this build (mirroring what `CLibDataChannel`/`LibDataChannelOfferTest.swift`
+did on the Mac), instead of just proving the dependency compiles.
+
 ## 2026-09-01 — Connectivity test, piece 5: real SDP offer + a buffering bug
 
 `LibDataChannelOfferTest.swift` replaces the piece 4 smoke test: creates a
