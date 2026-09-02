@@ -38,3 +38,9 @@ add_custom_command(TARGET datachannel_offer_test POST_BUILD
         $<TARGET_FILE:datachannel>
         $<TARGET_FILE_DIR:datachannel_offer_test>
 )
+
+# Piece 10, step 1: a minimal Winsock2 TCP server, isolated from
+# libdatachannel entirely for now — see docs/protocol.md.
+add_executable(signaling_test src/signaling_test.cpp)
+target_link_libraries(signaling_test PRIVATE ws2_32)
+set_property(TARGET signaling_test PROPERTY CXX_STANDARD 17)
