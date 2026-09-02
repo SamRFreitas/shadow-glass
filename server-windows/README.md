@@ -2,6 +2,26 @@
 
 Windows server (C/C++, built via CMake).
 
+## Quick build (recommended)
+
+From the Developer Command Prompt for VS, inside `server-windows/`:
+
+```
+build
+```
+
+This is `build.bat` — it just runs the `cmake -B build`/`cmake --build
+build` pair for you (same commands documented per-phase below), so you
+don't have to type the full `OPENSSL_ROOT_DIR` path every time. Pass an
+executable's name to also run it right after building, e.g.:
+
+```
+build signaling_test
+```
+
+See `docs/SETUP.md` for what needs to be installed before this works
+(Visual Studio, OpenSSL).
+
 ## Phase 1: `capture_test`
 
 Validates screen capture only (Desktop Duplication API), no encode and no
