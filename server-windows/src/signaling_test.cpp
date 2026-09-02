@@ -1,10 +1,11 @@
 // signaling_test.cpp
 //
-// Piece 10, step 1: prove a raw TCP server works on Windows, using
-// Winsock2 (the native Windows sockets API), before adding JSON parsing
-// or libdatachannel wiring on top (see docs/protocol.md for the full
-// plan). Listens on the signaling port, accepts one connection, and just
-// prints whatever text arrives — nothing smarter yet.
+// Piece 10: a raw TCP server on Windows, using Winsock2 (the native
+// Windows sockets API). Step 1 proved the socket itself works; this
+// step reads whatever arrives and interprets it as the newline-delimited
+// JSON messages docs/protocol.md defines (offer/answer/candidate) —
+// still with no libdatachannel wiring, on purpose: proving we can read
+// the right message before adding a real PeerConnection on top.
 //
 // Winsock2 is conceptually the same as the BSD/POSIX sockets API Unix
 // systems (macOS included) use — socket(), bind(), listen(), accept(),
@@ -18,10 +19,45 @@
 #include <winsock2.h>
 #include <ws2tcpip.h>
 
+// Not a new dependency: this header already lives in the repo, vendored
+// as one of libdatachannel's own submodules (third_party/libdatachannel/
+// deps/json) — the include path below just points our own code at it too.
+#include <nlohmann/json.hpp>
+using json = nlohmann::json;
+
 #include <cstdio>
+#include <sstream>
+#include <string>
 
 // See docs/protocol.md — the Mac client connects to this port.
 static const unsigned short SIGNALING_PORT = 45180;
+
+// Parses one line of the wire format and prints what it recognized.
+// ponytail: this only reports what it sees — nothing here calls into
+// libdatachannel yet, that's the next piece.
+static void handleMessage(const std::string& line) {
+    if (line.empty()) return;
+
+    json message;
+    try {
+        message = json::parse(line);
+    } catch (const json::parse_error& e) {
+        printf("  Could not parse as JSON: %s\n", e.what());
+        return;
+    }
+
+    const std::string type = message.value("type", "");
+    if (type == "offer" || type == "answer") {
+        printf("  Recognized a '%s' message (%zu bytes of SDP)\n",
+               type.c_str(), message.value("sdp", std::string()).size());
+    } else if (type == "candidate") {
+        printf("  Recognized a 'candidate' message: %s (mid=%s)\n",
+               message.value("candidate", std::string()).c_str(),
+               message.value("mid", std::string()).c_str());
+    } else {
+        printf("  Unrecognized message type: '%s'\n", type.c_str());
+    }
+}
 
 int main() {
     // "Loads" Winsock. Nothing else in this file can run before this
@@ -80,16 +116,30 @@ int main() {
 
     printf("Client connected. Reading data...\n");
 
-    // Keep reading and printing until the client disconnects (recv
-    // returns 0) or something goes wrong (negative return).
+    // TCP only guarantees a stream of bytes, not message boundaries — one
+    // recv() call might return half a line, or several lines glued
+    // together. Accumulating into a string and pulling out each complete
+    // line (up to '\n') handles both cases correctly.
+    std::string accumulated;
     char buffer[1024];
     int bytesReceived;
     while ((bytesReceived = recv(clientSocket, buffer, sizeof(buffer) - 1, 0)) > 0) {
-        buffer[bytesReceived] = '\0';
-        printf("Received: %s", buffer);
+        accumulated.append(buffer, bytesReceived);
+
+        size_t newlinePos;
+        while ((newlinePos = accumulated.find('\n')) != std::string::npos) {
+            std::string line = accumulated.substr(0, newlinePos);
+            accumulated.erase(0, newlinePos + 1);
+            printf("Received line: %s\n", line.c_str());
+            handleMessage(line);
+        }
     }
 
     printf("Client disconnected.\n");
+    if (!accumulated.empty()) {
+        printf("(leftover data with no trailing newline — handling anyway)\n");
+        handleMessage(accumulated);
+    }
 
     closesocket(clientSocket);
     closesocket(listenSocket);
