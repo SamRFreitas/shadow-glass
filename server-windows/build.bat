@@ -29,3 +29,9 @@ if not "%~1"=="" (
     echo.
     build\Debug\%~1.exe
 )
+
+REM Keeps the window open until a key is pressed — without this, running
+REM this script by double-clicking it in Explorer (instead of typing it
+REM into an already-open terminal) closes the whole window instantly once
+REM the program above exits, before there's any chance to read its output.
+pause
