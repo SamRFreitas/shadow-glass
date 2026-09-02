@@ -1,5 +1,65 @@
 # Logbook — Shadow Glass
 
+## 2026-09-02 — Piece 9 (protocol design) and piece 10 (Windows signaling server, in progress)
+
+**Piece 9**: designed and documented the signaling wire format before
+writing any code — `docs/protocol.md`. Plain TCP, newline-delimited JSON,
+three message types (`offer`, `answer`, `candidate`), a fixed port
+(`45180`), and two intentional MVP simplifications written down instead
+of silently glossed over: no "end of candidates" marker, and the
+signaling connection itself isn't encrypted (unlike the DataChannel,
+which always is).
+
+**Piece 10, so far** (`server-windows/src/signaling_test.cpp`):
+- A minimal Winsock2 TCP server: listens on the signaling port, accepts
+  one connection, prints whatever arrives. Confirmed working with a real
+  cross-machine connection (tested via `nc` from the Mac).
+- Added parsing of the actual `docs/protocol.md` JSON messages
+  (offer/answer/candidate), using `nlohmann/json` — already vendored via
+  the `libdatachannel` submodule, not a new dependency. Validated the
+  parsing logic itself on macOS with a small standalone test harness
+  (4 cases) before asking for a Windows test, since the full file can't
+  compile there (`winsock2.h` is Windows-only).
+- Still **no libdatachannel/PeerConnection wiring** — this test only
+  proves we can read the right message off the wire, on purpose, same
+  risk-isolation approach as always.
+
+**Two real bugs found and fixed along the way, worth remembering:**
+- **The Windows network was classified "Public", not "Private"**, even
+  though the user had accepted the firewall prompt for "Private" — those
+  are two different things (which category you allowed the app on vs.
+  which category Windows currently considers the network to actually be
+  in). This silently blocked all inbound connections with no error message
+  on either side — `nc` from the Mac just hung forever (no "connection
+  refused", since a dropped-vs-rejected packet look identical to a client
+  waiting). Fixed by switching the network's actual profile to Private in
+  Windows Settings. Diagnostic that mattered: `ping` failing first was a
+  red herring (Windows doesn't answer ICMP by default regardless of this
+  bug) — the real tell was `nc -v` never printing "Connection succeeded"
+  even after a long wait.
+- **The console window closing before there was time to read it**: adding
+  `pause` to `build.bat` only helps when the script itself launches the
+  exe — it does nothing when the exe is opened directly (double-clicked
+  in Explorer), which is how the user actually runs it day to day. Moved
+  the pause into `signaling_test.cpp` itself (prompts "Press Enter to
+  exit..." before returning from `main`), which covers every launch path.
+
+**Also added** `server-windows/build.bat` — wraps the `cmake -B build
+-DOPENSSL_ROOT_DIR=...` / `cmake --build build` pair into one `build`
+command (optionally `build <name>` to also run that executable). First
+real repeated script in the project, per the rule `CLAUDE.md` set from
+day one: only create a `.claude/skills/` wrapper once there's a script
+like this worth wrapping — that wrapper itself hasn't been created yet,
+still optional/future.
+
+**Next step, picking up here**: send a real JSON `offer` + `candidate`
+message (matching `docs/protocol.md`) to `signaling_test.exe` via `nc`
+from the Mac, and confirm the Windows console prints the correct
+"Recognized a '...' message" lines for each — this specific test was
+queued up but not yet run when the session ended. Once confirmed, next
+is wiring this into a real `PeerConnection` (piece 11+), replacing the
+"just prints what it saw" behavior with the real Windows answerer role.
+
 ## 2026-09-01 — Piece 8: first real Mac ↔ Windows connection
 
 Milestone: a `DataChannel` opened for real between the MacBook Air and the
