@@ -94,5 +94,16 @@ int main() {
     closesocket(clientSocket);
     closesocket(listenSocket);
     WSACleanup();
+
+    // Waits for a keypress before the program actually exits. Without
+    // this, double-clicking the .exe in Explorer (rather than running it
+    // from an already-open terminal) closes this whole console window the
+    // instant main() returns — before there's any chance to read what was
+    // just printed above. A .bat script's own `pause` command doesn't
+    // help here, since that only protects the case where a .bat launched
+    // it; this protects every way the program can be started.
+    printf("\nPress Enter to exit...");
+    getchar();
+
     return 0;
 }
