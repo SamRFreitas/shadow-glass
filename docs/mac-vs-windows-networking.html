@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Two Ways to Open a Socket — Shadow Glass</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f6f3ec; --panel: #ece4d3; --panel-line: #ddd2b8;
+    --ink: #1b2430; --ink-soft: #4a5468; --accent: #c9722c; --muted: #b9b0a0;
+    --bad: #b23b3b; --good: #2f7d5f; --win: #2a5db0;
+    --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    --sans: "IBM Plex Sans", -apple-system, "Segoe UI", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #11151c; --panel: #1a2029; --panel-line: #2a3240;
+      --ink: #e8e3d6; --ink-soft: #a7b0c2; --accent: #e79350; --muted: #4a5568;
+      --bad: #e0716f; --good: #5fbf95; --win: #6fa3e0;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--sans); line-height: 1.6; }
+  .page { max-width: 760px; margin: 0 auto; padding: 48px 24px 96px; }
+  .kicker { font-family: var(--mono); font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); }
+  h1 { font-family: var(--mono); font-size: clamp(26px, 5vw, 36px); font-weight: 600; margin: 8px 0 20px; text-wrap: balance; }
+  h2 { font-family: var(--mono); font-size: 19px; font-weight: 600; margin: 0 0 12px; }
+  p { max-width: 66ch; }
+  .headline { font-size: 17px; font-weight: 500; background: var(--panel); border-left: 4px solid var(--accent); padding: 16px 20px; border-radius: 6px; margin: 0 0 40px; max-width: none; }
+  section { margin: 48px 0; padding-top: 36px; border-top: 1px solid var(--panel-line); }
+  section:first-of-type { border-top: none; padding-top: 0; }
+  code { font-family: var(--mono); font-size: 0.9em; background: var(--panel); border: 1px solid var(--panel-line); border-radius: 4px; padding: 0.1em 0.35em; }
+
+  figure { margin: 20px 0; padding: 18px; background: var(--panel); border: 1px solid var(--panel-line); border-radius: 10px; }
+  figure svg { display: block; width: 100%; height: auto; color: var(--ink-soft); }
+  figure svg text { font-family: var(--mono); fill: currentColor; }
+  figure svg .strong { fill: var(--ink); font-weight: 600; }
+  figcaption { font-size: 13.5px; color: var(--ink-soft); margin-top: 12px; }
+
+  ol.trail { list-style: none; margin: 16px 0; padding: 0; counter-reset: step; }
+  ol.trail li { counter-increment: step; position: relative; padding: 0 0 20px 40px; border-left: 2px solid var(--panel-line); margin-left: 13px; }
+  ol.trail li:last-child { border-left-color: transparent; padding-bottom: 0; }
+  ol.trail li::before { content: counter(step); position: absolute; left: -13px; top: 0; width: 26px; height: 26px; border-radius: 50%; background: var(--panel); border: 2px solid var(--panel-line); display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 12px; font-weight: 600; }
+  ol.trail li.dead::before { border-color: var(--bad); color: var(--bad); }
+  ol.trail li.found::before { border-color: var(--good); color: var(--good); background: var(--good); color: white; }
+  ol.trail b { font-weight: 600; }
+  ol.trail .result { display: block; font-size: 13.5px; color: var(--ink-soft); margin-top: 4px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 14px; margin: 8px 0; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--panel-line); vertical-align: top; }
+  th { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-soft); font-weight: 600; }
+  td.win { color: var(--win); }
+  td.mac { color: var(--accent); }
+
+  .diff-box { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 16px 0; }
+  .diff-box > div { background: var(--panel); border: 1px solid var(--panel-line); border-radius: 8px; padding: 14px; }
+  .diff-box .diff-label { font-family: var(--mono); font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-soft); margin-bottom: 8px; }
+  .diff-box pre { margin: 0; font-family: var(--mono); font-size: 12.5px; white-space: pre-wrap; }
+  @media (max-width: 560px) { .diff-box { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="kicker">Shadow Glass — field notes</div>
+  <h1>Two Ways to Open a Socket</h1>
+  <p class="headline">
+    Piece 12 got stuck for an entire session on something that had
+    nothing to do with WebRTC, or with our own code being wrong: on
+    macOS, <strong>two different APIs that both "open a TCP connection"
+    are not treated the same by the operating system.</strong> One of
+    them is gated behind a privacy permission that, in our case, silently
+    never asked. The other — the older, lower-level one — was never
+    gated at all, and had been working perfectly the whole time without
+    us realizing it.
+  </p>
+
+  <section>
+    <h2>The trail we followed</h2>
+    <p>
+      Every one of these looked, at the time, like it could be the real
+      cause. Documenting the dead ends is as useful as documenting the
+      fix — this exact sequence is what "debugging a silent permission
+      wall" actually looks like in practice.
+    </p>
+    <ol class="trail">
+      <li class="dead"><b>Maybe it's a stdout buffering bug</b> — we'd
+        hit this exact kind of silence before (piece 5).
+        <span class="result">Ruled out: running in a real terminal (a
+        tty) doesn't buffer this way at all.</span>
+      </li>
+      <li class="dead"><b>Maybe Claude launching it via automation is the problem</b>
+        — no proper GUI session, no Dock icon.
+        <span class="result">Real issue, worth fixing on its own, but
+        the same silence continued even once the user ran it themselves
+        in their own terminal.</span>
+      </li>
+      <li class="dead"><b>Maybe Xcode handles this automatically</b> —
+        try running through Xcode instead of <code>swift run</code>.
+        <span class="result">Xcode's own console showed the real clue by
+        accident: <code>"Cannot index window tabs due to missing main
+        bundle identifier"</code> — this binary had no bundle identity at all.</span>
+      </li>
+      <li class="dead"><b>Embed an Info.plist via a linker flag</b>
+        (<code>-sectcreate __TEXT __info_plist</code>) — gives the raw
+        binary a <code>CFBundleIdentifier</code> without needing a real
+        <code>.app</code> folder.
+        <span class="result">Confirmed embedded (<code>otool -s</code>
+        proved the bytes were there) — but still no Dock icon, still no
+        permission prompt.</span>
+      </li>
+      <li class="dead"><b>Build a real <code>.app</code> bundle</b>
+        (<code>Contents/MacOS/</code> + <code>Contents/Info.plist</code>),
+        launched via <code>open</code> instead of running the raw binary.
+        <span class="result">Dock icon finally appeared — real progress
+        — but the specific "allow local network access" popup still
+        never showed, and <code>tccutil reset LocalNetwork
+        &lt;bundle-id&gt;</code> found nothing to reset, meaning the OS
+        genuinely never even considered asking.</span>
+      </li>
+      <li class="found"><b>Check what had worked all along</b> — every
+        single signaling test since piece 10 used <code>nc</code> from a
+        plain terminal, connecting to this exact same Windows machine,
+        on this exact same network, with zero delay and zero popup,
+        every time.
+        <span class="result">That's the real signal: whatever gate was
+        blocking <code>NWConnection</code> never applied to
+        <code>nc</code> at all — because it isn't the network that's
+        gated, it's the specific API used to reach it.</span>
+      </li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>Two APIs, one socket, different rules</h2>
+    <p>
+      <code>NWConnection</code> (Apple's <code>Network</code> framework)
+      and a plain BSD <code>socket()</code> both end up doing the exact
+      same thing at the hardware level — but only one of them passes
+      through a privacy checkpoint first.
+    </p>
+    <figure>
+      <svg viewBox="0 0 680 260" role="img" aria-label="Two parallel paths from an app to the network. The top path, using Network.framework, first passes through a TCC Local Network permission gate that can silently block with no prompt. The bottom path, using plain BSD sockets, goes straight to the kernel's networking stack with no such gate.">
+        <g font-size="12.5">
+          <text x="10" y="26" class="strong">NWConnection (Network.framework)</text>
+          <rect x="10" y="40" width="140" height="46" fill="none" stroke="currentColor"></rect>
+          <text x="30" y="68" text-anchor="middle" transform="translate(30,0)"></text>
+          <text x="80" y="68" text-anchor="middle">our app</text>
+          <text x="220" y="55" text-anchor="middle" style="fill:var(--bad)" class="strong">TCC</text>
+          <text x="220" y="70" text-anchor="middle" style="fill:var(--bad)" font-size="11">Local Network</text>
+          <text x="220" y="83" text-anchor="middle" style="fill:var(--bad)" font-size="11">gate</text>
+          <rect x="175" y="40" width="90" height="46" fill="none" stroke="var(--bad)"></rect>
+          <path d="M150 63 L175 63" stroke="currentColor" marker-end="url(#arrow)"></path>
+          <path d="M265 63 L340 63" stroke="var(--bad)" stroke-dasharray="4 3" marker-end="url(#arrowbad)"></path>
+          <text x="350" y="55" style="fill:var(--bad)" font-size="11">popup never shown →</text>
+          <text x="350" y="70" style="fill:var(--bad)" font-size="11">silently blocked, no error</text>
+
+          <text x="10" y="140" class="strong">Raw BSD socket()</text>
+          <rect x="10" y="154" width="140" height="46" fill="none" stroke="currentColor"></rect>
+          <text x="80" y="182" text-anchor="middle">our app</text>
+          <path d="M150 177 L340 177" stroke="var(--good)" marker-end="url(#arrowgood)"></path>
+          <text x="220" y="168" text-anchor="middle" style="fill:var(--good)" font-size="11">no gate</text>
+          <rect x="340" y="154" width="150" height="46" fill="none" stroke="var(--good)"></rect>
+          <text x="415" y="182" text-anchor="middle" style="fill:var(--good)" font-size="12">kernel network stack</text>
+          <text x="500" y="177" style="fill:var(--good)" font-size="11">→ connects instantly</text>
+        </g>
+        <defs>
+          <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="currentColor"></path></marker>
+          <marker id="arrowbad" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--bad)"></path></marker>
+          <marker id="arrowgood" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--good)"></path></marker>
+        </defs>
+      </svg>
+      <figcaption>
+        This is also why <code>nc</code>, <code>curl</code>, and
+        <code>ping</code> have never once shown a permission popup on
+        this Mac all project long — none of them use
+        <code>Network.framework</code>.
+      </figcaption>
+    </figure>
+    <p>
+      Apple's own docs frame the "Local Network" permission (added in
+      macOS Big Sur/iOS 14) as covering Bonjour discovery and connections
+      to devices on private IP ranges (like our <code>192.168.15.x</code>
+      LAN) made through <code>Network.framework</code> or
+      <code>NSNetService</code>. Plain POSIX sockets predate this
+      permission system by decades and were never folded into it — a
+      genuine gap, not a bug, and one every classic Unix networking tool
+      still relies on today.
+    </p>
+  </section>
+
+  <section>
+    <h2>The fix: match what Windows already does</h2>
+    <p>
+      <code>signaling_test.cpp</code> was already using raw sockets
+      (Winsock2) — this wasn't a new concept, just a new place to apply
+      it. Winsock was explicitly modeled on BSD sockets in the early 90s,
+      so both sides of Shadow Glass now use, conceptually, the exact same
+      four calls:
+    </p>
+    <div class="diff-box">
+      <div>
+        <div class="diff-label">Windows (Winsock2)</div>
+        <pre>socket(AF_INET, SOCK_STREAM, ...)
+connect(sock, &addr, ...)
+send(sock, data, size, 0)
+recv(sock, buf, size, 0)</pre>
+      </div>
+      <div>
+        <div class="diff-label">macOS (Darwin/BSD)</div>
+        <pre>socket(AF_INET, SOCK_STREAM, ...)
+connect(fd, &addr, ...)
+send(fd, data, size, 0)
+recv(fd, buf, size, 0)</pre>
+      </div>
+    </div>
+    <p>
+      The only real difference is spelling (<code>SOCKET</code> vs.
+      <code>Int32</code> for the handle, <code>closesocket()</code> vs.
+      <code>close()</code>) — a direct result of Microsoft copying the
+      Unix networking API rather than inventing a new one. The trade-off
+      for going lower-level than <code>Network.framework</code>: no
+      built-in async completion handlers, so <code>connect()</code> and
+      <code>recv()</code> block, and now run on a background thread
+      instead of blocking the whole app.
+    </p>
+  </section>
+
+  <section>
+    <h2>Other macOS/Windows particularities found so far</h2>
+    <p>
+      Not every platform difference this project has hit is about
+      networking — collecting the pattern across all of them: the two
+      operating systems each protect and configure things through
+      completely different mechanisms, even when the end goal (run an
+      app, open a connection) looks identical from the outside.
+    </p>
+    <table>
+      <tr><th>Situation</th><th>Windows</th><th>macOS</th></tr>
+      <tr>
+        <td>Blocking an inbound connection</td>
+        <td class="win">A network <em>profile</em> (Public/Private) —
+        separate from, and easy to confuse with, the one-time firewall
+        popup that grants an app permission (piece 10's real bug).</td>
+        <td class="mac">No equivalent profile concept for a home LAN;
+        instead gates specific <em>APIs</em> per-app (TCC), as this page
+        covers.</td>
+      </tr>
+      <tr>
+        <td>Console closing before you can read it</td>
+        <td class="win">Double-clicking an <code>.exe</code> closes its
+        console the instant <code>main()</code> returns — fixed with an
+        explicit <code>getchar()</code> pause inside the program itself.</td>
+        <td class="mac">Not applicable the same way — a terminal window
+        stays open regardless of what the program inside it does.</td>
+      </tr>
+      <tr>
+        <td>A shared library not found at runtime</td>
+        <td class="win">DLL search order: looks next to the
+        <code>.exe</code> first — fixed with a CMake
+        <code>POST_BUILD</code> copy step.</td>
+        <td class="mac">Governed by <code>@rpath</code> — fixed by
+        passing an explicit <code>-rpath</code> at link time.</td>
+      </tr>
+      <tr>
+        <td>Giving an app a stable identity</td>
+        <td class="win">Not required at all for a plain
+        <code>.exe</code> to run or open connections.</td>
+        <td class="mac">Needs a bundle identifier (<code>Info.plist</code>)
+        before several privacy-gated APIs — including
+        <code>Network.framework</code> — will even prompt, let alone
+        work.</td>
+      </tr>
+    </table>
+  </section>
+</div>
+</body>
+</html>

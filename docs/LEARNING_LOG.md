@@ -64,6 +64,25 @@ for permission. Likely relevant to any future Info.plist-gated permission
 remembering for any future from-scratch SPM-only macOS app, in this
 project or elsewhere.
 
+**The saga continued past the Info.plist fix, and ended somewhere more
+interesting than expected** — full story, with diagrams, in
+[`docs/mac-vs-windows-networking.html`](mac-vs-windows-networking.html)
+(open it directly in a browser). Short version: the embedded Info.plist
+alone still wasn't enough (still no Dock icon, still no prompt); wrapping
+the build in a real `.app` bundle (`build-app-bundle.sh`, launched via
+`open`) got the Dock icon back but *still* no permission prompt, and
+`tccutil reset LocalNetwork <bundle-id>` found nothing to reset — meaning
+the OS genuinely never considered asking at all. The actual realization:
+every `nc`-based test since piece 10 had worked instantly on this same
+network with zero popup, the whole time — because macOS's Local Network
+privacy permission specifically gates `Network.framework`/Bonjour-style
+APIs, not plain POSIX sockets. Fixed by rewriting
+`SignalingClientTest.swift`'s transport from `NWConnection` to raw BSD
+sockets (`socket`/`connect`/`send`/`recv`) — conceptually identical to
+the Winsock2 code `signaling_test.cpp` already uses on Windows (Winsock
+was explicitly modeled on BSD sockets), so the two sides of this project
+now mirror each other even more closely than before.
+
 **Next step, once this is confirmed working**: watch for the DataChannel
 actually opening across the two real machines automatically (no
 copy-paste at all) — the actual milestone piece 12 set out to prove.
