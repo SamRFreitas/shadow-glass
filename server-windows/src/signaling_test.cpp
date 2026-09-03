@@ -70,13 +70,13 @@ static void handleMessage(const std::string& line, rtc::PeerConnection& pc) {
     const std::string type = message.value("type", "");
     if (type == "offer") {
         std::string sdp = message.value("sdp", std::string());
-        printf("  Recognized an 'offer' message (%zu bytes of SDP) — handing it to the PeerConnection\n",
+        printf("  Recognized an 'offer' message (%zu bytes of SDP) -- handing it to the PeerConnection\n",
                sdp.size());
         pc.setRemoteDescription(rtc::Description(sdp, "offer"));
     } else if (type == "candidate") {
         std::string candidate = message.value("candidate", std::string());
         std::string mid = message.value("mid", std::string());
-        printf("  Recognized a 'candidate' message: %s (mid=%s) — adding it to the PeerConnection\n",
+        printf("  Recognized a 'candidate' message: %s (mid=%s) -- adding it to the PeerConnection\n",
                candidate.c_str(), mid.c_str());
         pc.addRemoteCandidate(rtc::Candidate(candidate, mid));
     } else {
@@ -208,7 +208,7 @@ int main() {
 
     printf("Client disconnected.\n");
     if (!accumulated.empty()) {
-        printf("(leftover data with no trailing newline — handling anyway)\n");
+        printf("(leftover data with no trailing newline -- handling anyway)\n");
         handleMessage(accumulated, pc);
     }
 
