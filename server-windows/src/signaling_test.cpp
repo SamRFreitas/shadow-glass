@@ -1,11 +1,20 @@
 // signaling_test.cpp
 //
-// Piece 10: a raw TCP server on Windows, using Winsock2 (the native
-// Windows sockets API). Step 1 proved the socket itself works; this
-// step reads whatever arrives and interprets it as the newline-delimited
-// JSON messages docs/protocol.md defines (offer/answer/candidate) —
-// still with no libdatachannel wiring, on purpose: proving we can read
-// the right message before adding a real PeerConnection on top.
+// Piece 10 built a raw TCP server on Windows, using Winsock2 (the native
+// Windows sockets API), that reads the newline-delimited JSON messages
+// docs/protocol.md defines (offer/answer/candidate) — but only printed
+// what it saw, with no libdatachannel wiring, on purpose: proving we
+// could read the right message before adding a real PeerConnection on
+// top of it.
+//
+// Piece 11 (this version) wires it up for real: this program is always
+// the *answerer* (docs/protocol.md's exchange sequence has the Mac send
+// the offer first) — when a real 'offer' arrives, it hands it to a
+// PeerConnection, which reacts by generating our own 'answer' and our
+// own ICE candidates asynchronously; those get written back over the
+// same TCP socket instead of just printed. This is the same role the
+// library's own answerer.exe example played by hand in piece 8, now
+// automated end to end.
 //
 // Winsock2 is conceptually the same as the BSD/POSIX sockets API Unix
 // systems (macOS included) use — socket(), bind(), listen(), accept(),
@@ -19,6 +28,8 @@
 #include <winsock2.h>
 #include <ws2tcpip.h>
 
+#include "rtc/rtc.hpp"
+
 // Not a new dependency: this header already lives in the repo, vendored
 // as one of libdatachannel's own submodules (third_party/libdatachannel/
 // deps/json) — the include path below just points our own code at it too.
@@ -26,16 +37,26 @@
 using json = nlohmann::json;
 
 #include <cstdio>
+#include <memory>
 #include <sstream>
 #include <string>
 
 // See docs/protocol.md — the Mac client connects to this port.
 static const unsigned short SIGNALING_PORT = 45180;
 
-// Parses one line of the wire format and prints what it recognized.
-// ponytail: this only reports what it sees — nothing here calls into
-// libdatachannel yet, that's the next piece.
-static void handleMessage(const std::string& line) {
+// Writes one JSON message back to the Mac, in the same newline-delimited
+// format we read on the way in — this is the write side of the same wire
+// format piece 10 only ever read.
+static void sendJson(SOCKET clientSocket, const json& message) {
+    std::string line = message.dump() + "\n";
+    send(clientSocket, line.c_str(), static_cast<int>(line.size()), 0);
+}
+
+// Parses one line of the wire format and, now, acts on it: feeds an
+// offer/candidate to the real PeerConnection instead of just printing it.
+// The PeerConnection reacts on its own (asynchronously, via the callbacks
+// set up in main()) by producing our answer and our own candidates.
+static void handleMessage(const std::string& line, rtc::PeerConnection& pc) {
     if (line.empty()) return;
 
     json message;
@@ -47,13 +68,17 @@ static void handleMessage(const std::string& line) {
     }
 
     const std::string type = message.value("type", "");
-    if (type == "offer" || type == "answer") {
-        printf("  Recognized a '%s' message (%zu bytes of SDP)\n",
-               type.c_str(), message.value("sdp", std::string()).size());
+    if (type == "offer") {
+        std::string sdp = message.value("sdp", std::string());
+        printf("  Recognized an 'offer' message (%zu bytes of SDP) — handing it to the PeerConnection\n",
+               sdp.size());
+        pc.setRemoteDescription(rtc::Description(sdp, "offer"));
     } else if (type == "candidate") {
-        printf("  Recognized a 'candidate' message: %s (mid=%s)\n",
-               message.value("candidate", std::string()).c_str(),
-               message.value("mid", std::string()).c_str());
+        std::string candidate = message.value("candidate", std::string());
+        std::string mid = message.value("mid", std::string());
+        printf("  Recognized a 'candidate' message: %s (mid=%s) — adding it to the PeerConnection\n",
+               candidate.c_str(), mid.c_str());
+        pc.addRemoteCandidate(rtc::Candidate(candidate, mid));
     } else {
         printf("  Unrecognized message type: '%s'\n", type.c_str());
     }
@@ -116,6 +141,52 @@ int main() {
 
     printf("Client connected. Reading data...\n");
 
+    // Warning level only — we don't need the library's own internal trace,
+    // just our own output (same choice as datachannel_offer_test.cpp).
+    rtc::InitLogger(rtc::LogLevel::Warning);
+
+    rtc::Configuration config;
+    rtc::PeerConnection pc(config);
+
+    // Fires once the library has generated our side's answer, which
+    // happens automatically after setRemoteDescription() below sees an
+    // offer — we never call createDataChannel() or ask for an offer
+    // ourselves, since answering (not offering) is this program's fixed
+    // role in docs/protocol.md's exchange.
+    pc.onLocalDescription([clientSocket](rtc::Description description) {
+        json out;
+        out["type"] = description.typeString(); // "answer"
+        out["sdp"] = std::string(description);
+        sendJson(clientSocket, out);
+        printf("Sent our '%s' back to the Mac.\n", description.typeString().c_str());
+    });
+
+    // Fires once per ICE candidate our side discovers — each one is sent
+    // back the moment it's found, not batched, matching the "no end-of-
+    // candidates marker" simplification docs/protocol.md already documents.
+    pc.onLocalCandidate([clientSocket](rtc::Candidate candidate) {
+        json out;
+        out["type"] = "candidate";
+        out["candidate"] = candidate.candidate();
+        out["mid"] = candidate.mid();
+        sendJson(clientSocket, out);
+        printf("Sent one of our candidates back to the Mac.\n");
+    });
+
+    // Fires when the Mac's DataChannel actually reaches us — this is the
+    // payoff of the whole exchange: proof the negotiation above actually
+    // worked, without a human copy-pasting anything (piece 8's manual test,
+    // now automatic).
+    pc.onDataChannel([](std::shared_ptr<rtc::DataChannel> dc) {
+        printf("DataChannel '%s' received from the Mac!\n", dc->label().c_str());
+        dc->onOpen([]() { printf("DataChannel is open.\n"); });
+        dc->onMessage([](rtc::message_variant data) {
+            if (std::holds_alternative<std::string>(data)) {
+                printf("Message from Mac: %s\n", std::get<std::string>(data).c_str());
+            }
+        });
+    });
+
     // TCP only guarantees a stream of bytes, not message boundaries — one
     // recv() call might return half a line, or several lines glued
     // together. Accumulating into a string and pulling out each complete
@@ -131,14 +202,14 @@ int main() {
             std::string line = accumulated.substr(0, newlinePos);
             accumulated.erase(0, newlinePos + 1);
             printf("Received line: %s\n", line.c_str());
-            handleMessage(line);
+            handleMessage(line, pc);
         }
     }
 
     printf("Client disconnected.\n");
     if (!accumulated.empty()) {
         printf("(leftover data with no trailing newline — handling anyway)\n");
-        handleMessage(accumulated);
+        handleMessage(accumulated, pc);
     }
 
     closesocket(clientSocket);

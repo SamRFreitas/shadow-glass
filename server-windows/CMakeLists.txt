@@ -39,12 +39,20 @@ add_custom_command(TARGET datachannel_offer_test POST_BUILD
         $<TARGET_FILE_DIR:datachannel_offer_test>
 )
 
-# Piece 10: a Winsock2 TCP server reading the wire format from
-# docs/protocol.md, still isolated from libdatachannel's PeerConnection.
-# The JSON header include path points at nlohmann/json's copy already
-# vendored inside the libdatachannel submodule — not a new dependency.
+# Piece 10 built a Winsock2 TCP server reading the wire format from
+# docs/protocol.md; piece 11 wires it into a real PeerConnection, so it
+# now links against datachannel too (same DLL-copy fix datachannel_offer_test
+# needs, for the same reason: the DLL and this .exe land in different build
+# subfolders). The JSON header include path points at nlohmann/json's copy
+# already vendored inside the libdatachannel submodule — not a new dependency.
 add_executable(signaling_test src/signaling_test.cpp)
-target_link_libraries(signaling_test PRIVATE ws2_32)
+target_link_libraries(signaling_test PRIVATE ws2_32 datachannel)
 target_include_directories(signaling_test PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../third_party/libdatachannel/deps/json/include)
 set_property(TARGET signaling_test PROPERTY CXX_STANDARD 17)
+
+add_custom_command(TARGET signaling_test POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        $<TARGET_FILE:datachannel>
+        $<TARGET_FILE_DIR:signaling_test>
+)
