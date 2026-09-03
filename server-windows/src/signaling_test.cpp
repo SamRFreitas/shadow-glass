@@ -143,13 +143,22 @@ int main() {
 
     // Warning level only — we don't need the library's own internal trace,
     // just our own output (same choice as datachannel_offer_test.cpp).
-    // Temporarily bumped to Debug (from Warning) to diagnose why the
-    // DataChannel keeps closing itself shortly after opening — revert to
-    // Warning once that's understood.
-    rtc::InitLogger(rtc::LogLevel::Debug);
+    rtc::InitLogger(rtc::LogLevel::Warning);
 
     rtc::Configuration config;
     rtc::PeerConnection pc(config);
+
+    // Keeps the incoming DataChannel alive for as long as main() keeps
+    // running, the same reason `pc` above is a local variable here
+    // instead of something temporary. Without this, the shared_ptr
+    // onDataChannel hands us below is the *only* reference to that
+    // object — the moment its lambda returns, the reference count drops
+    // to zero and the channel gets destroyed, which is exactly what the
+    // "SCTP resetting stream 1" log line right after "DataChannel is
+    // open" was: real, not hypothetical, confirmed during piece 13's
+    // testing. (The direct C++ equivalent of the Swift ARC bug that took
+    // a whole session to find on the Mac side — see docs/LEARNING_LOG.md.)
+    std::shared_ptr<rtc::DataChannel> incomingDataChannel;
 
     // Fires once the library has generated our side's answer, which
     // happens automatically after setRemoteDescription() below sees an
@@ -180,8 +189,9 @@ int main() {
     // payoff of the whole exchange: proof the negotiation above actually
     // worked, without a human copy-pasting anything (piece 8's manual test,
     // now automatic).
-    pc.onDataChannel([](std::shared_ptr<rtc::DataChannel> dc) {
+    pc.onDataChannel([&incomingDataChannel](std::shared_ptr<rtc::DataChannel> dc) {
         printf("DataChannel '%s' received from the Mac!\n", dc->label().c_str());
+        incomingDataChannel = dc; // the actual fix -- see the comment above
 
         // The channel handed to us here can already be open, with a
         // message already sitting in its internal queue, before we ever

@@ -65,10 +65,7 @@ final class LibDataChannelTransport: LowLatencyTransport {
 
     func connect(to host: String) {
         setvbuf(stdout, nil, _IOLBF, 0)
-        // Temporarily bumped to Debug (from Warning) to diagnose why the
-        // DataChannel keeps closing itself shortly after opening —
-        // revert to Warning once that's understood.
-        rtcInitLogger(RTC_LOG_DEBUG, nil)
+        rtcInitLogger(RTC_LOG_WARNING, nil)
         notifyStatus(.connecting)
 
         // connect() and recv() below are blocking BSD calls — running
