@@ -110,6 +110,17 @@ actually the thing that fixed piece 12.
 
 Piece 12 is now done — Mac and Windows exchange signaling and open a
 DataChannel fully automatically, no copy-paste, no manual steps.
+Confirmed on the Windows console too, not just the Mac's: it printed the
+offer being recognized, its own answer and two candidates being sent
+back, both of the Mac's candidates being recognized and added, and
+finally `DataChannel 'shadow-glass' received from the Mac!` — the exact
+milestone piece 8 proved by hand, now fully hands-free on both ends.
+
+One small polish item found in that same console output:
+`signaling_test.cpp`'s em-dashes (`—`) in a couple of `printf` strings
+rendered as garbled bytes (`ÔÇö`) on the Windows console, since it isn't
+UTF-8 by default. Replaced with plain ASCII (`--`) — cosmetic only,
+never affected correctness.
 
 ## 2026-09-03 — Piece 11: signaling server wired into a real PeerConnection
 
