@@ -1,5 +1,27 @@
 # Logbook — Shadow Glass
 
+## 2026-09-03 — Piece 10 confirmed end-to-end
+
+Ran the test queued at the end of the previous session: sent a fake
+`offer` + `candidate` JSON pair (matching `docs/protocol.md`) from the Mac
+via `nc`, straight at a freshly (re)started `signaling_test.exe` listening
+on the Acer Aspire. Confirmed the Windows console printed exactly the
+expected lines — `Recognized a 'offer' message (N bytes of SDP)` and
+`Recognized a 'candidate' message: ... (mid=0)` — closing out piece 10.
+
+**Piece 10 is now fully done**: a real Winsock2 TCP server on Windows that
+correctly parses the actual wire format two different machines will use to
+exchange WebRTC signaling. Nothing here talks to `libdatachannel` yet —
+that's the next piece, on purpose (same risk-isolation approach as every
+piece before it: prove the message gets read correctly before wiring it
+into anything that can fail in a more confusing way).
+
+**Next step**: wire `signaling_test.cpp` into a real `rtc::PeerConnection`
+(piece 11) — parsing an incoming `offer` should set it as the remote
+description and generate a real `answer`, instead of just printing what it
+saw. This is the Windows-side "answerer" role already proven manually in
+piece 8, now automated.
+
 ## 2026-09-02 — Piece 9 (protocol design) and piece 10 (Windows signaling server, in progress)
 
 **Piece 9**: designed and documented the signaling wire format before
