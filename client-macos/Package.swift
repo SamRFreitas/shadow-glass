@@ -13,6 +13,7 @@ let packageDirectory = URL(fileURLWithPath: #filePath).deletingLastPathComponent
 let libdatachannelRoot = packageDirectory.appendingPathComponent("../third_party/libdatachannel")
 let libdatachannelInclude = libdatachannelRoot.appendingPathComponent("include").path
 let libdatachannelBuild = libdatachannelRoot.appendingPathComponent("build").path
+let infoPlistPath = packageDirectory.appendingPathComponent("Sources/ShadowGlassClient/Info.plist").path
 
 let package = Package(
     name: "ShadowGlassClient",
@@ -35,6 +36,11 @@ let package = Package(
         .executableTarget(
             name: "ShadowGlassClient",
             dependencies: ["CLibDataChannel"],
+            // Info.plist isn't Swift source or a runtime resource bundle —
+            // it's read straight off disk by path and embedded via the
+            // -sectcreate linker flag below, so exclude it from normal
+            // source scanning.
+            exclude: ["Info.plist"],
             swiftSettings: [
                 // `-Xcc` forwards the next flag straight to the
                 // C-language compiler Swift uses internally to read
@@ -52,6 +58,16 @@ let package = Package(
                     // (see the explanation after this piece for what that
                     // means) rather than baking in one fixed location.
                     "-Xlinker", "-rpath", "-Xlinker", libdatachannelBuild,
+                    // A plain SwiftPM executable has no Info.plist/bundle
+                    // identifier of its own — `-sectcreate` embeds one
+                    // directly into the compiled binary's __TEXT segment,
+                    // under the same section name (__info_plist) a real
+                    // .app bundle's Info.plist would occupy. Without this,
+                    // macOS has no bundle identifier to attach a Local
+                    // Network permission request to, and silently blocks
+                    // any outbound connection instead of ever prompting.
+                    "-Xlinker", "-sectcreate", "-Xlinker", "__TEXT",
+                    "-Xlinker", "__info_plist", "-Xlinker", infoPlistPath,
                 ])
             ]
         )
