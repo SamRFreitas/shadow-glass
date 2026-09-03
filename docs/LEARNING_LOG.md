@@ -1,5 +1,73 @@
 # Logbook — Shadow Glass
 
+## 2026-09-03 — Piece 12: the Mac side connects out automatically — and a real macOS gotcha along the way
+
+`SignalingClientTest.swift` (replacing `LibDataChannelOfferTest.swift`,
+deleted) does automatically what a human did by hand in piece 8: opens a
+TCP connection to the Windows signaling port (`Network` framework), waits
+for it to be ready, *then* creates a `PeerConnection` + `DataChannel` as
+the offering side, and wires the library's own callbacks straight to the
+wire — every offer/candidate it generates becomes a JSON line sent to
+Windows, and every line read back (`answer`/`candidate`) gets fed straight
+into the PeerConnection. Still a standalone test invoked from
+`ShadowGlassClientApp.init()`, not yet wired into `ContentView`'s UI/
+`Transport` protocol (`FakeTransport` is still what the buttons use) —
+that's a separate later piece.
+
+**A real macOS-specific bug ate most of this session, worth documenting
+prominently** (full technical detail in `docs/SETUP.md`'s "Known dead
+ends"): a plain SwiftPM executable target has no `Info.plist` or bundle
+identifier at all — something a traditional Xcode `.app` project gets for
+free. Without a `NSLocalNetworkUsageDescription` key, macOS never even
+*shows* the "allow this app to find and connect to devices on your local
+network" permission prompt — it just silently blocks the connection.
+Symptoms chased across several dead ends before landing on the real
+cause:
+- Ran the test via Claude's own automation first — no output, no TCP
+  socket ever opened (`lsof` confirmed), process just idling normally
+  (`sample` showed it blocked in the ordinary AppKit event loop, nothing
+  wrong there). First real lesson here: a GUI/networking test like this
+  should be run by the user in their own terminal, not launched through
+  Claude's automation — a process started that way doesn't get a normal
+  foreground GUI session (no Dock icon), and a system permission popup
+  tied to a session like that may never render anywhere for anyone to
+  answer.
+- Re-ran in the user's own terminal (a real interactive session, proper
+  Dock icon) — still nothing, not even the build's own preamble was
+  suspicious since this is a real tty (the piece 5 "fully buffered when
+  not a tty" bug doesn't apply here). No entry ever appeared in **System
+  Settings → Privacy & Security → Local Network** either — a real signal
+  that the permission system wasn't even being asked, not just that it
+  was denied.
+- Tried Xcode next (user's own idea, and the right one): `open
+  Package.swift` opens the SPM package directly in Xcode. First attempt
+  failed with an unrelated `lldb` "attach failed" debugger error — worked
+  around by unchecking **Debug executable** in Product → Scheme → Edit
+  Scheme → Run → Info (this only disables breakpoint/pause support, not
+  console output, and is trivially reversible).
+- With the debugger out of the way, Xcode's own console finally showed
+  something concrete: a wall of harmless `com.apple.linkd.autoShortcut`
+  noise (unrelated Shortcuts/Siri integration failing quietly, ignorable)
+  ending in the actually useful line: `"Cannot index window tabs due to
+  missing main bundle identifier"` — confirmation the binary genuinely has
+  no bundle identifier, in Xcode or out of it.
+
+**The fix**: embed an `Info.plist` (with `CFBundleIdentifier` and
+`NSLocalNetworkUsageDescription`) directly into the compiled binary via
+the linker (`-sectcreate __TEXT __info_plist <path>`), added to
+`ShadowGlassClient`'s `linkerSettings` in `Package.swift`. Verified the
+bytes actually land in the binary with `otool -s __TEXT __info_plist`.
+This keeps the project on SwiftPM (no `.xcodeproj`, per the project's
+existing rationale) while giving the OS what it needs to actually prompt
+for permission. Likely relevant to any future Info.plist-gated permission
+(camera, microphone, notifications), not just this one — worth
+remembering for any future from-scratch SPM-only macOS app, in this
+project or elsewhere.
+
+**Next step, once this is confirmed working**: watch for the DataChannel
+actually opening across the two real machines automatically (no
+copy-paste at all) — the actual milestone piece 12 set out to prove.
+
 ## 2026-09-03 — Piece 11: signaling server wired into a real PeerConnection
 
 `signaling_test.cpp` stopped just printing what it saw and became a real

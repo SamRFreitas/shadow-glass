@@ -92,3 +92,35 @@ cmake --build build
   "Installing..."/"Building..." messages appeared anywhere in the log).
   Root cause never confirmed. Worked around by installing OpenSSL
   directly instead (see above) rather than continuing to debug vcpkg.
+
+- **A plain SwiftPM executable (no `.xcodeproj`) has no `Info.plist` or
+  bundle identifier of its own — a whole class of macOS permission
+  prompts silently never appear because of it.** Hit this the first time
+  `client-macos` tried an actual outbound network connection (piece 12):
+  no "allow this app to find and connect to devices on your local
+  network" popup ever showed — not via `swift run` in a terminal, not via
+  Xcode (debugger attached or not) — and nothing showed up in **System
+  Settings → Privacy & Security → Local Network** either. A traditional
+  Xcode `.app` target gets an `Info.plist` (and the missing-key prompt
+  Xcode shows you at build time when a permission needs a usage
+  description) for free; a `.executableTarget` in `Package.swift` gets
+  neither, so the OS has no bundle identifier to attach a permission
+  request to and just blocks the connection instead of asking. Same root
+  cause likely applies to *any* other Info.plist-gated macOS permission
+  (camera, microphone, notifications, etc.), not just this one.
+
+  **Fix**: embed an `Info.plist` directly into the compiled binary via a
+  linker flag, instead of switching off SPM to a traditional project:
+  ```swift
+  // In the executableTarget's linkerSettings:
+  "-Xlinker", "-sectcreate", "-Xlinker", "__TEXT",
+  "-Xlinker", "__info_plist", "-Xlinker", "/absolute/path/to/Info.plist",
+  ```
+  `-sectcreate __TEXT __info_plist` writes the plist's bytes into the same
+  Mach-O section (`__TEXT,__info_plist`) a real `.app` bundle's
+  `Info.plist` would occupy — verify it actually landed with
+  `otool -s __TEXT __info_plist path/to/binary`. The plist itself needs at
+  minimum `CFBundleIdentifier` plus whichever `NS...UsageDescription` key
+  the permission in question requires (see
+  `client-macos/Sources/ShadowGlassClient/Info.plist` for the Local
+  Network one already in place).
