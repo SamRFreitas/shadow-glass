@@ -179,6 +179,20 @@ int main() {
     // now automatic).
     pc.onDataChannel([](std::shared_ptr<rtc::DataChannel> dc) {
         printf("DataChannel '%s' received from the Mac!\n", dc->label().c_str());
+
+        // The channel handed to us here can already be open, with a
+        // message already sitting in its internal queue, before we ever
+        // get a chance to register onMessage below -- a real race, not
+        // hypothetical (it silently swallowed the very first "Hello Mac"
+        // click during piece 13's testing). receive() only works while
+        // onMessage is unset, so drain anything already waiting first,
+        // then subscribe for whatever arrives after.
+        while (auto msg = dc->receive()) {
+            if (std::holds_alternative<std::string>(*msg)) {
+                printf("Message from Mac: %s\n", std::get<std::string>(*msg).c_str());
+            }
+        }
+
         dc->onOpen([]() { printf("DataChannel is open.\n"); });
         dc->onMessage([](rtc::message_variant data) {
             if (std::holds_alternative<std::string>(data)) {
