@@ -9,7 +9,11 @@ import SwiftUI
 @main
 struct ShadowGlassClientApp: App {
     init() {
-        LibDataChannelOfferTest.run()
+        // Hardcoded for now — the Aspire's LAN IP, confirmed during
+        // piece 8. There's no discovery/config mechanism yet (that's a
+        // later concern); this is still a throwaway test, not the real
+        // transport wired into ContentView below.
+        SignalingClientTest.run(host: "192.168.15.8")
     }
 
     var body: some Scene {
