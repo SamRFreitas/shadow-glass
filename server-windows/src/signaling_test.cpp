@@ -143,7 +143,10 @@ int main() {
 
     // Warning level only — we don't need the library's own internal trace,
     // just our own output (same choice as datachannel_offer_test.cpp).
-    rtc::InitLogger(rtc::LogLevel::Warning);
+    // Temporarily bumped to Debug (from Warning) to diagnose why the
+    // DataChannel keeps closing itself shortly after opening — revert to
+    // Warning once that's understood.
+    rtc::InitLogger(rtc::LogLevel::Debug);
 
     rtc::Configuration config;
     rtc::PeerConnection pc(config);
