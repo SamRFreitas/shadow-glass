@@ -66,14 +66,15 @@
   <div class="kicker">Shadow Glass — field notes</div>
   <h1>Two Ways to Open a Socket</h1>
   <p class="headline">
-    Piece 12 got stuck for an entire session on something that had
-    nothing to do with WebRTC, or with our own code being wrong: on
-    macOS, <strong>two different APIs that both "open a TCP connection"
-    are not treated the same by the operating system.</strong> One of
-    them is gated behind a privacy permission that, in our case, silently
-    never asked. The other — the older, lower-level one — was never
-    gated at all, and had been working perfectly the whole time without
-    us realizing it.
+    Piece 12 got stuck for an entire session chasing what looked like a
+    macOS permission problem — and along the way turned up something
+    real and worth knowing: on macOS,
+    <strong>two different APIs that both "open a TCP connection" are not
+    treated the same by the operating system.</strong> But the honest
+    ending (see "The twist" below) is that the actual bug hiding the
+    whole time was something else entirely, unrelated to permissions at
+    all — the permission story below is true and worth keeping, just not
+    the thing that ultimately fixed piece 12.
   </p>
 
   <section>
@@ -130,6 +131,47 @@
         gated, it's the specific API used to reach it.</span>
       </li>
     </ol>
+  </section>
+
+  <section>
+    <h2>The twist: a second, unrelated bug was hiding underneath</h2>
+    <p>
+      Everything above is true and worth knowing — but honestly, it
+      wasn't actually what fixed piece 12. After rewriting the transport
+      to raw sockets, the exact same silence continued: still no
+      connection, still zero output, even running the plain binary
+      directly with no bundle, no <code>open</code>, no permission system
+      anywhere in the picture. That should have been the first sign this
+      was never really about permissions at all.
+    </p>
+    <p>
+      The real cause: the object doing all this work
+      (<code>SignalingClientTest</code>) was never kept alive by anything.
+      <code>run()</code> created it in a local variable, called
+      <code>start()</code>, and returned — and the moment it returned,
+      with nothing else holding a reference, Swift's automatic reference
+      counting deallocated it immediately. Every callback in the file
+      (first <code>NWConnection</code>'s, later the raw socket code, and
+      libdatachannel's own) captured <code>self</code> as
+      <code>[weak self]</code> — the safe way to avoid a callback
+      outliving its owner. But here the owner never outlived
+      <em>anything</em>: by the time any scheduled work actually ran,
+      <code>self</code> had already become <code>nil</code>, and every
+      guard quietly did nothing. No crash, no error, no log line — just
+      silence, indistinguishable from a permission being denied with no
+      prompt.
+    </p>
+    <p>
+      The honest conclusion: it's entirely possible
+      <code>NWConnection</code> would have worked fine the whole time,
+      once this lifetime bug was fixed — we switched away from it before
+      ever finding this, so that specific combination was never actually
+      re-tested. The permission-model differences on this page are real
+      and still worth knowing, but this page's original framing (raw
+      sockets as "the fix") overstated its role. The actual fix, in the
+      end, was one line: keep a static, strong reference to the object
+      for as long as the app runs.
+    </p>
   </section>
 
   <section>
@@ -191,7 +233,7 @@
   </section>
 
   <section>
-    <h2>The fix: match what Windows already does</h2>
+    <h2>A worthwhile change anyway, even if not "the fix"</h2>
     <p>
       <code>signaling_test.cpp</code> was already using raw sockets
       (Winsock2) — this wasn't a new concept, just a new place to apply
