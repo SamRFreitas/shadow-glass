@@ -83,9 +83,33 @@ the Winsock2 code `signaling_test.cpp` already uses on Windows (Winsock
 was explicitly modeled on BSD sockets), so the two sides of this project
 now mirror each other even more closely than before.
 
-**Next step, once this is confirmed working**: watch for the DataChannel
-actually opening across the two real machines automatically (no
-copy-paste at all) — the actual milestone piece 12 set out to prove.
+**Correction, found right after the above**: switching to BSD sockets
+did *not* actually fix piece 12 — the exact same silence continued
+afterward, even running the plain binary directly with zero permission
+system anywhere in the picture, which should have been the tell. The
+real bug: `SignalingClientTest`'s instance was never kept alive by
+anything. `run()` created it in a local variable and returned; with
+nothing else retaining it, Swift's ARC deallocated it immediately, and
+every callback in the file (first `NWConnection`'s, later the raw
+socket code) captured `self` as `[weak self]` — so by the time any of
+that scheduled async work ran, `self` was already `nil` and silently did
+nothing. No crash, no log, no network activity — indistinguishable from
+a permission silently denied. Fixed with one line: a `static var shared`
+holding a strong reference for the app's lifetime. Confirmed end-to-end
+immediately after: connected to Windows, sent a real offer + candidates,
+received a real answer + candidates back, and the DataChannel opened —
+piece 8's manual test, finally fully automated.
+
+Honest note for `docs/mac-vs-windows-networking.html` (updated to say
+the same): it's genuinely unclear whether `NWConnection` would have
+worked fine the whole time once this lifetime bug was fixed — we
+switched away from it before ever finding the real cause, so that
+combination was never re-tested. The permission-model differences the
+page documents are still real and worth knowing; they just weren't
+actually the thing that fixed piece 12.
+
+Piece 12 is now done — Mac and Windows exchange signaling and open a
+DataChannel fully automatically, no copy-paste, no manual steps.
 
 ## 2026-09-03 — Piece 11: signaling server wired into a real PeerConnection
 
