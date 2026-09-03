@@ -8,14 +8,6 @@ import SwiftUI
 // `main.swift` placeholder is being removed in this same step.
 @main
 struct ShadowGlassClientApp: App {
-    init() {
-        // Hardcoded for now — the Aspire's LAN IP, confirmed during
-        // piece 8. There's no discovery/config mechanism yet (that's a
-        // later concern); this is still a throwaway test, not the real
-        // transport wired into ContentView below.
-        SignalingClientTest.run(host: "192.168.15.8")
-    }
-
     var body: some Scene {
         WindowGroup {
             ContentView()
@@ -24,17 +16,27 @@ struct ShadowGlassClientApp: App {
 }
 
 // The main (and only, for now) screen. Wired to a LowLatencyTransport —
-// today a FakeTransport with no real networking, later a
-// libdatachannel-backed one — through the protocol only, so this view
-// never needs to change when the real implementation replaces the fake
-// one.
+// now LibDataChannelTransport (piece 13), the real connection, through
+// the protocol only, exactly as planned back when FakeTransport
+// (deleted) was still the only implementation: this view never needed
+// to change when the real one replaced the fake one.
 struct ContentView: View {
     @State private var status: ConnectionStatus = .disconnected
     @State private var lastReceivedMessage = ""
 
-    // `let` because we swap the whole transport implementation later by
-    // changing this one line, not by touching anything below.
-    private let transport: LowLatencyTransport = FakeTransport()
+    // `let` because swapping the transport implementation is a one-line
+    // change here, not something that touches anything below. This
+    // property is also what keeps the transport object alive for as long
+    // as the app runs — see LibDataChannelTransport.swift's header
+    // comment for why that specifically matters.
+    private let transport: LowLatencyTransport = LibDataChannelTransport()
+
+    // Hardcoded for now — the Aspire's LAN IP, confirmed during piece 8.
+    // Fine to keep as a plain literal (see CLAUDE.md's "Security posture
+    // for connection details" — a private LAN address isn't reachable
+    // from outside this network, so publishing it isn't a risk). No
+    // discovery/config mechanism exists yet.
+    private let windowsHost = "192.168.15.8"
 
     var body: some View {
         VStack(spacing: 16) {
@@ -43,7 +45,7 @@ struct ContentView: View {
             Text(statusText)
                 .foregroundStyle(.secondary)
             Button("Connect") {
-                transport.connect(to: "placeholder-host")
+                transport.connect(to: windowsHost)
             }
             .disabled(status != .disconnected)
             Button("Send Hello Mac") {
