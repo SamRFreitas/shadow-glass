@@ -129,3 +129,25 @@ it's for, what each choice changes) before asking — or, if the decision is
 low-risk and reversible, just make the call with a stated rationale and
 move on, leaving room for him to veto afterward, instead of blocking on an
 answer he has no basis to give.
+
+## Security posture for connection details (user feedback, 2026-09-03)
+
+The user asked whether hardcoding the Windows machine's LAN IP in
+`client-macos/Sources/ShadowGlassClient/ShadowGlassClientApp.swift` is a
+security problem now that the repo is public. It isn't: a `192.168.x.x`
+(or `10.x.x.x`, `172.16-31.x.x`) address only resolves inside a local
+network, so publishing it gives nobody outside that network a way to
+reach the machine — it's decided to stay a plain hardcoded value, not
+moved to a config file, on that basis (see `docs/LEARNING_LOG.md` for the
+full reasoning).
+
+Standing rule going forward, not limited to this one IP or to Phase 7:
+whenever a connection/networking change is about to introduce something
+that actually would matter if exposed — a credential, an API key or
+token, a certificate or private key, a public-facing hostname/IP, or TURN
+server credentials (the concrete case Phase 7's remote-access work is
+expected to introduce) — that value must not be hardcoded or committed.
+Use a gitignored local config file with a committed `*.example` template
+committed alongside it, checked *before* writing the code that needs the
+value, not noticed afterward. This check applies any time a
+connection-related risk shows up, whichever phase it happens in.

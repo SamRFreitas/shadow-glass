@@ -148,3 +148,41 @@ it's for, what each choice changes) before asking — or, if the decision is
 low-risk and reversible, just make the call with a stated rationale and
 move on, leaving room for him to veto afterward, instead of blocking on an
 answer he has no basis to give.
+
+## Security posture for connection details (user feedback, 2026-09-03)
+
+The user asked whether hardcoding the Windows machine's LAN IP address
+(`192.168.15.8`) directly in the source file
+`client-macos/Sources/ShadowGlassClient/ShadowGlassClientApp.swift` is a
+security problem, given that this repository is public on GitHub.
+
+**Answer, explained explicitly**: it is not a problem. Any address in the
+ranges `192.168.x.x`, `10.x.x.x`, or `172.16.x.x` through `172.31.x.x` is
+a "private" address — it only means something inside one specific local
+network (a home Wi-Fi network, in this case) and cannot be reached at all
+from the public internet. Publishing this address in a public repository
+does not give any outside attacker a way to reach the machine, because
+the address is not routable outside that one local network. So the
+decision made here was: **leave the IP address as a plain hardcoded
+value in the code, do not move it to a config file, do not add a `.env`
+file for it.** The full reasoning is also written in
+`docs/LEARNING_LOG.md`.
+
+**Standing rule for every future change to this project, not just this
+one IP address, and not only starting at Phase 7**: before writing any
+code that adds or changes a network connection, check whether that
+change is about to introduce a value that would actually be dangerous if
+made public. Examples of values that ARE dangerous and must never be
+hardcoded or committed to git: a password, an API key, an authentication
+token, a TLS/SSL certificate or private key, a public-facing hostname or
+public IP address (as opposed to a private LAN address like the one
+above), or credentials for a TURN relay server (this specific case is
+expected to come up during Phase 7, the remote-access-outside-the-LAN
+phase, but the rule is not limited to Phase 7 — check every time,
+whichever phase the code change happens in). If any such value is about
+to be introduced, do not hardcode it or commit it: use a gitignored local
+config file instead, and commit an example template file alongside it
+(for instance `local-config.json` gitignored, plus
+`local-config.example.json` committed) so anyone cloning the repository
+knows what to create. Perform this check before writing the connection
+code, not after it has already been written and committed.
