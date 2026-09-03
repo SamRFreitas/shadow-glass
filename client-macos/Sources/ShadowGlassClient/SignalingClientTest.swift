@@ -68,6 +68,18 @@ final class SignalingClientTest {
         var mid: String?
     }
 
+    // print() alone wasn't reliable once stdout was redirected to a plain
+    // file (via `open --stdout`, when testing outside a real .app launch
+    // from Xcode): the piece-5 line-buffering fix (setvbuf below) only
+    // works if it runs before *anything* else has written to stdout, and
+    // AppKit's own startup chatter can beat our code to it. fflush()
+    // after every line sidesteps that race entirely, regardless of
+    // whatever buffering mode ends up active.
+    private func log(_ message: String) {
+        print(message)
+        fflush(stdout)
+    }
+
     private func start(host: String, port: UInt16) {
         // Same buffering bug as piece 5 — see LibDataChannelOfferTest's
         // history in docs/LEARNING_LOG.md if this ever needs re-explaining.
@@ -85,7 +97,7 @@ final class SignalingClientTest {
     private func connectAndRun(host: String, port: UInt16) {
         let fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)
         guard fd >= 0 else {
-            print("signaling client: socket() failed: \(String(cString: strerror(errno)))")
+            log("signaling client: socket() failed: \(String(cString: strerror(errno)))")
             return
         }
 
@@ -93,7 +105,7 @@ final class SignalingClientTest {
         addr.sin_family = sa_family_t(AF_INET)
         addr.sin_port = port.bigEndian // network byte order — same idea as Winsock's htons()
         guard inet_pton(AF_INET, host, &addr.sin_addr) == 1 else {
-            print("signaling client: invalid host '\(host)'")
+            log("signaling client: invalid host '\(host)'")
             close(fd)
             return
         }
@@ -104,13 +116,13 @@ final class SignalingClientTest {
             }
         }
         guard connectResult == 0 else {
-            print("signaling client: connect() failed: \(String(cString: strerror(errno))) — is signaling_test.exe running?")
+            log("signaling client: connect() failed: \(String(cString: strerror(errno))) — is signaling_test.exe running?")
             close(fd)
             return
         }
 
         socketFD = fd
-        print("signaling client: connected to \(host):\(port)")
+        log("signaling client: connected to \(host):\(port)")
         startPeerConnection()
         receiveLoop(fd: fd)
     }
@@ -119,7 +131,7 @@ final class SignalingClientTest {
         var config = rtcConfiguration()
         pc = rtcCreatePeerConnection(&config)
         guard pc >= 0 else {
-            print("signaling client: failed to create peer connection (\(pc))")
+            log("signaling client: failed to create peer connection (\(pc))")
             return
         }
 
@@ -145,7 +157,7 @@ final class SignalingClientTest {
         // off negotiation (same reasoning as LibDataChannelOfferTest).
         dc = rtcCreateDataChannel(pc, "shadow-glass")
         guard dc >= 0 else {
-            print("signaling client: failed to create data channel (\(dc))")
+            log("signaling client: failed to create data channel (\(dc))")
             return
         }
         rtcSetUserPointer(dc, context)
@@ -154,10 +166,11 @@ final class SignalingClientTest {
             let instance = Unmanaged<SignalingClientTest>.fromOpaque(ptr).takeUnretainedValue()
             instance.handleDataChannelOpen()
         }
-        rtcSetMessageCallback(dc) { _, message, size, _ in
-            guard let message else { return }
+        rtcSetMessageCallback(dc) { _, message, size, ptr in
+            guard let ptr, let message else { return }
+            let instance = Unmanaged<SignalingClientTest>.fromOpaque(ptr).takeUnretainedValue()
             let text = String(data: Data(bytes: message, count: Int(size)), encoding: .utf8) ?? "<non-utf8 message>"
-            print("signaling client: message from Windows: \(text)")
+            instance.log("signaling client: message from Windows: \(text)")
         }
     }
 
@@ -167,7 +180,7 @@ final class SignalingClientTest {
         guard let json = try? JSONEncoder().encode(message) else { return }
         var line = json
         line.append(0x0A) // '\n' — same newline-delimited framing as the Windows side
-        print("signaling client: sending \(message.type)")
+        log("signaling client: sending \(message.type)")
         sendQueue.async { [weak self] in
             guard let self, self.socketFD >= 0 else { return }
             let fd = self.socketFD
@@ -178,7 +191,7 @@ final class SignalingClientTest {
     }
 
     private func handleDataChannelOpen() {
-        print("signaling client: DataChannel is open! (the real milestone — piece 8's manual test, automated)")
+        log("signaling client: DataChannel is open! (the real milestone — piece 8's manual test, automated)")
         "Hello from the Mac, automatically!".withCString { cString in
             _ = rtcSendMessage(dc, cString, -1) // negative size = send as a text message
         }
@@ -200,9 +213,9 @@ final class SignalingClientTest {
             let bytesRead = buffer.withUnsafeMutableBytes { recv(fd, $0.baseAddress, $0.count, 0) }
             if bytesRead <= 0 {
                 if bytesRead < 0 {
-                    print("signaling client: recv() error: \(String(cString: strerror(errno)))")
+                    log("signaling client: recv() error: \(String(cString: strerror(errno)))")
                 } else {
-                    print("signaling client: Windows closed the signaling connection")
+                    log("signaling client: Windows closed the signaling connection")
                 }
                 return
             }
@@ -223,21 +236,21 @@ final class SignalingClientTest {
         guard !line.isEmpty,
               let data = line.data(using: .utf8),
               let message = try? JSONDecoder().decode(SignalingMessage.self, from: data) else {
-            print("signaling client: could not parse line as JSON: \(line)")
+            log("signaling client: could not parse line as JSON: \(line)")
             return
         }
 
         switch message.type {
         case "answer":
             guard let sdp = message.sdp else { return }
-            print("signaling client: received 'answer' (\(sdp.utf8.count) bytes of SDP) — handing it to the PeerConnection")
+            log("signaling client: received 'answer' (\(sdp.utf8.count) bytes of SDP) — handing it to the PeerConnection")
             rtcSetRemoteDescription(pc, sdp, "answer")
         case "candidate":
             guard let candidate = message.candidate, let mid = message.mid else { return }
-            print("signaling client: received a candidate: \(candidate) (mid=\(mid)) — adding it to the PeerConnection")
+            log("signaling client: received a candidate: \(candidate) (mid=\(mid)) — adding it to the PeerConnection")
             rtcAddRemoteCandidate(pc, candidate, mid)
         default:
-            print("signaling client: unrecognized message type '\(message.type)'")
+            log("signaling client: unrecognized message type '\(message.type)'")
         }
     }
 }
