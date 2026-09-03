@@ -36,11 +36,23 @@ import Foundation
 // now mirror each other closely, not just in wire format but in API
 // shape.
 final class SignalingClientTest {
+    // The real bug behind this whole piece: without this, nothing keeps
+    // the instance created below alive. `run()`'s local `test` goes out
+    // of scope the moment it returns, `start()` only *schedules* the real
+    // work to run later (on a background queue), and every callback in
+    // this file captures `self` as `[weak self]` — so by the time any of
+    // that scheduled work actually runs, `self` has already been
+    // deallocated and silently resolves to nil. No crash, no log, no
+    // network activity: everything just silently no-ops. This `shared`
+    // reference is what LibDataChannelOfferTest's old comment ("kept
+    // alive on purpose") *claimed* to do but never actually did — that
+    // version got away with it only because its own setup was entirely
+    // synchronous, finishing before deallocation could matter.
+    private static var shared: SignalingClientTest?
+
     static func run(host: String, port: UInt16 = 45180) {
-        // Kept alive on purpose, same reasoning as LibDataChannelOfferTest:
-        // this object owns the connection's lifetime for as long as the
-        // app runs. Still a throwaway test, not the real transport.
         let test = SignalingClientTest()
+        shared = test
         test.start(host: host, port: port)
     }
 
