@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleIdentifier</key>
+    <string>dev.shadowglass.client</string>
+    <key>CFBundleName</key>
+    <string>ShadowGlassClient</string>
+    <key>CFBundleShortVersionString</key>
+    <string>0.1</string>
+    <key>CFBundleVersion</key>
+    <string>1</string>
+    <!-- Required by macOS before it will even show the "allow this app to
+         find and connect to devices on your local network" permission
+         prompt. Without this key, the OS silently blocks the connection
+         instead of asking — which is exactly the bug piece 12 hit. -->
+    <key>NSLocalNetworkUsageDescription</key>
+    <string>Shadow Glass connects to the Windows PC on your local network to stream its screen and send input.</string>
+</dict>
+</plist>
