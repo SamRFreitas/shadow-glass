@@ -1,5 +1,61 @@
 # Logbook — Shadow Glass
 
+## 2026-09-03 — Piece 13: the real transport, and the same bug twice in one day, in two languages
+
+Piece 13 wired the real connection into the UI: `LibDataChannelTransport`
+(new) implements `LowLatencyTransport` — the protocol `ContentView` was
+always written against, per the design constraint set back when
+`FakeTransport` (deleted) was the only implementation — using piece 12's
+socket/signaling logic (`SignalingClientTest`, deleted, folded into the
+new class). `ContentView` barely changed: swap one line
+(`FakeTransport()` → `LibDataChannelTransport()`), and the Connect/Send
+buttons started doing the real thing.
+
+**First live test surfaced two more real bugs, both worth remembering:**
+
+1. Clicking "Send Hello Mac" did nothing on Windows, even after waiting
+   and retrying — this was the exact race flagged (and wrongly dismissed
+   as unreachable in practice) during piece 11's own testing: the
+   DataChannel handed to Windows's `onDataChannel` can already be open,
+   with a message already queued, before `onMessage` is ever registered
+   — and libdatachannel only flushes that queue when a *later* message
+   arrives to re-trigger it. Fixed by draining with `dc->receive()` in a
+   loop first, then subscribing with `onMessage` for whatever arrives
+   after (`receive()` only works while `onMessage` is unset, so this has
+   to happen in that order). Real bug, not hypothetical — it swallowed
+   the actual first click during testing.
+
+2. Bumping the log level to Debug on both sides (temporarily) to
+   diagnose a second, more serious symptom — the DataChannel closing
+   itself within seconds of opening, every single time, message fix or
+   not — surfaced the real cause: `"SCTP resetting stream 1"` firing
+   right after `"DataChannel is open"` on *both* machines' logs. Windows's
+   `onDataChannel` handler received its `shared_ptr<DataChannel>` as a
+   lambda parameter and never stored it anywhere else — the C++
+   equivalent of the Swift `[weak self]` bug from piece 12
+   (`SignalingClientTest`'s instance never being kept alive), just via
+   `shared_ptr` reference counting instead of ARC. The moment that lambda
+   returned, the refcount hit zero and the channel was destroyed,
+   tearing down the SCTP stream — which the Mac observed, over the
+   network, as its own side of the same channel closing. Fixed with one
+   line: store the incoming channel in a `std::shared_ptr<rtc::DataChannel>`
+   local variable in `main()`, with the same lifetime as `pc` itself.
+
+**The pattern worth remembering across both bugs, in both languages**:
+whenever an object only exists because a callback handed you a reference
+to it (Swift's `weak self`, C++'s `shared_ptr` parameter), *something*
+with a longer lifetime than that callback has to keep a strong/owning
+reference to it, or the object silently disappears the instant the
+callback returns — no crash, no error, just silence or, here, a
+connection that closes itself for no apparent reason. Two different
+reference-counting systems, same underlying mistake, same day.
+
+**Confirmed working after both fixes**: clicked "Send Hello Mac" four
+times in the real UI; Windows's console printed `Message from Mac: Hello
+Mac` four times, once per click, with the connection staying open the
+whole time. Piece 13's actual goal — a real, working connection wired
+into the UI on both ends — is done.
+
 ## 2026-09-03 — Security question: is the hardcoded Windows IP a problem now that the repo is public?
 
 With piece 12 done and committed, the user asked whether hardcoding the
