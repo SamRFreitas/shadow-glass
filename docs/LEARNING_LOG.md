@@ -1,5 +1,34 @@
 # Logbook — Shadow Glass
 
+## 2026-09-03 — Security question: is the hardcoded Windows IP a problem now that the repo is public?
+
+With piece 12 done and committed, the user asked whether hardcoding the
+Windows machine's LAN IP (`192.168.15.8`) in
+`ShadowGlassClientApp.swift` is a security risk on a public GitHub repo,
+and wanted a `.env`-style workaround if so.
+
+**Answer worked out here**: no real risk. `192.168.x.x` (along with
+`10.x.x.x` and `172.16-31.x.x`) is private address space — it only
+resolves inside one specific local network and isn't reachable from the
+public internet at all. Publishing it doesn't hand anyone outside that
+network a way to reach the machine; it's roughly as sensitive as writing
+down "my router is 192.168.1.1" (the default for a huge fraction of home
+routers). What *would* actually matter, whenever it exists: credentials,
+API keys/tokens, certificates/private keys, a real public-facing
+hostname/IP, or TURN server credentials (expected to show up once Phase
+7's remote-access work starts).
+
+**Decision**: leave the IP as a plain hardcoded value — no config file,
+no `.env` — since there's nothing here worth protecting yet. Recorded as
+a standing rule in `CLAUDE.md`/`AGENTS.md` instead of just this one
+instance: before writing any future connection-related code, check
+whether it's about to introduce something that actually would be
+dangerous if made public, at any phase, not only Phase 7. If it does, the
+established pattern for this project is a gitignored local config file
+(e.g. `local-config.json`) with a committed `*.example` template —
+worked out in this conversation but not yet needed for anything real, so
+not implemented as actual code.
+
 ## 2026-09-03 — Piece 12: the Mac side connects out automatically — and a real macOS gotcha along the way
 
 `SignalingClientTest.swift` (replacing `LibDataChannelOfferTest.swift`,
