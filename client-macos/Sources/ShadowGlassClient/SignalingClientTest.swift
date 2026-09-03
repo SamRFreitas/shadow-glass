@@ -1,7 +1,6 @@
 import CLibDataChannel
 import Darwin
 import Foundation
-import Network
 
 // Piece 12: the Mac side finally does what a human did by hand in piece
 // 8 (manually copy-pasting SDP/candidates between two consoles) — but
@@ -20,6 +19,22 @@ import Network
 // Supersedes and replaces LibDataChannelOfferTest: everything that test
 // did (create a PeerConnection, create a DataChannel, generate an offer)
 // still happens here, plus the real signaling exchange around it.
+//
+// Networking here is plain BSD sockets (socket/connect/send/recv), not
+// Apple's higher-level Network framework — that was the original
+// approach, and it silently never worked: NWConnection's own state
+// callback never fired even once, on this Mac, in any of several launch
+// methods (swift run, Xcode, a real .app bundle). The likely cause and
+// the full comparison with how Windows does the exact same thing is
+// documented visually in docs/mac-vs-windows-networking.html; the short
+// version is that macOS's "Local Network" privacy permission only gates
+// Network.framework/Bonjour-style APIs, and plain POSIX sockets were
+// never subject to it — which our own `nc` tests (pieces 10-11) already
+// proved worked instantly, with no popup, all along. This is also
+// conceptually the exact same API signaling_test.cpp already uses on
+// Windows via Winsock2 (itself modeled on BSD sockets) — the two sides
+// now mirror each other closely, not just in wire format but in API
+// shape.
 final class SignalingClientTest {
     static func run(host: String, port: UInt16 = 45180) {
         // Kept alive on purpose, same reasoning as LibDataChannelOfferTest:
@@ -31,8 +46,14 @@ final class SignalingClientTest {
 
     private var pc: Int32 = -1
     private var dc: Int32 = -1
-    private var connection: NWConnection?
+    private var socketFD: Int32 = -1
     private var receiveBuffer = ""
+
+    // Serializes writes to socketFD: libdatachannel's own callbacks
+    // (offer/candidate generation) fire from its internal threads, not
+    // ours, so more than one could try to send() at the same instant
+    // without this.
+    private let sendQueue = DispatchQueue(label: "shadow-glass.signaling-send")
 
     // Mirrors docs/protocol.md exactly: only 'type' is always present,
     // the rest depend on which kind of message it is. Swift's compiler-
@@ -53,33 +74,45 @@ final class SignalingClientTest {
         setvbuf(stdout, nil, _IOLBF, 0)
         rtcInitLogger(RTC_LOG_WARNING, nil)
 
-        // Connect the signaling channel first, and only start the
-        // PeerConnection once it's actually open — that way there's never
-        // a moment where the library has already generated an offer/
-        // candidate with nowhere to send it yet.
-        guard let nwPort = NWEndpoint.Port(rawValue: port) else {
-            print("signaling client: invalid port \(port)")
+        // connect() and recv() below are blocking BSD calls — running them
+        // on the main thread would freeze the whole UI, so the entire
+        // networking side runs on a background thread instead.
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            self?.connectAndRun(host: host, port: port)
+        }
+    }
+
+    private func connectAndRun(host: String, port: UInt16) {
+        let fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)
+        guard fd >= 0 else {
+            print("signaling client: socket() failed: \(String(cString: strerror(errno)))")
             return
         }
-        let connection = NWConnection(host: NWEndpoint.Host(host), port: nwPort, using: .tcp)
-        self.connection = connection
 
-        connection.stateUpdateHandler = { [weak self] state in
-            guard let self else { return }
-            switch state {
-            case .ready:
-                print("signaling client: connected to \(host):\(port)")
-                self.receiveLine()
-                self.startPeerConnection()
-            case .failed(let error):
-                print("signaling client: connection failed: \(error)")
-            case .waiting(let error):
-                print("signaling client: waiting to connect (\(error)) — is signaling_test.exe running?")
-            default:
-                break
+        var addr = sockaddr_in()
+        addr.sin_family = sa_family_t(AF_INET)
+        addr.sin_port = port.bigEndian // network byte order — same idea as Winsock's htons()
+        guard inet_pton(AF_INET, host, &addr.sin_addr) == 1 else {
+            print("signaling client: invalid host '\(host)'")
+            close(fd)
+            return
+        }
+
+        let connectResult = withUnsafePointer(to: &addr) { addrPtr -> Int32 in
+            addrPtr.withMemoryRebound(to: sockaddr.self, capacity: 1) { sockaddrPtr in
+                connect(fd, sockaddrPtr, socklen_t(MemoryLayout<sockaddr_in>.size))
             }
         }
-        connection.start(queue: .main)
+        guard connectResult == 0 else {
+            print("signaling client: connect() failed: \(String(cString: strerror(errno))) — is signaling_test.exe running?")
+            close(fd)
+            return
+        }
+
+        socketFD = fd
+        print("signaling client: connected to \(host):\(port)")
+        startPeerConnection()
+        receiveLoop(fd: fd)
     }
 
     private func startPeerConnection() {
@@ -135,11 +168,13 @@ final class SignalingClientTest {
         var line = json
         line.append(0x0A) // '\n' — same newline-delimited framing as the Windows side
         print("signaling client: sending \(message.type)")
-        connection?.send(content: line, completion: .contentProcessed { error in
-            if let error {
-                print("signaling client: send error: \(error)")
+        sendQueue.async { [weak self] in
+            guard let self, self.socketFD >= 0 else { return }
+            let fd = self.socketFD
+            line.withUnsafeBytes { buffer in
+                _ = send(fd, buffer.baseAddress, buffer.count, 0)
             }
-        })
+        }
     }
 
     private func handleDataChannelOpen() {
@@ -153,23 +188,26 @@ final class SignalingClientTest {
 
     // Same reasoning as signaling_test.cpp's recv loop: TCP only
     // guarantees a stream of bytes, not message boundaries, so we
-    // accumulate into a string and pull out each complete line.
-    private func receiveLine() {
-        connection?.receive(minimumIncompleteLength: 1, maximumLength: 65536) { [weak self] data, _, isComplete, error in
-            guard let self else { return }
-            if let data, let text = String(data: data, encoding: .utf8) {
-                self.receiveBuffer += text
-                self.processBufferedLines()
-            }
-            if let error {
-                print("signaling client: receive error: \(error)")
+    // accumulate into a string and pull out each complete line. recv()
+    // blocks until data arrives, so this runs on its own background
+    // thread (started from connectAndRun) for as long as the connection
+    // stays open — there's no completion-handler style here, unlike
+    // Network.framework, which is exactly the trade-off of using the
+    // lower-level API directly.
+    private func receiveLoop(fd: Int32) {
+        var buffer = [UInt8](repeating: 0, count: 65536)
+        while true {
+            let bytesRead = buffer.withUnsafeMutableBytes { recv(fd, $0.baseAddress, $0.count, 0) }
+            if bytesRead <= 0 {
+                if bytesRead < 0 {
+                    print("signaling client: recv() error: \(String(cString: strerror(errno)))")
+                } else {
+                    print("signaling client: Windows closed the signaling connection")
+                }
                 return
             }
-            if isComplete {
-                print("signaling client: Windows closed the signaling connection")
-                return
-            }
-            self.receiveLine()
+            receiveBuffer += String(decoding: buffer[0..<bytesRead], as: UTF8.self)
+            processBufferedLines()
         }
     }
 
