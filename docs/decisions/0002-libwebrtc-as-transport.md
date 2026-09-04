@@ -5,6 +5,21 @@
 - Supersedes: the transport section of [ADR 0001](0001-custom-transport-vs-rdp.md)
   (screen capture and hardware encode from ADR 0001 remain valid and are
   unaffected by this decision)
+- **Update (2026-09-04)**: "`libwebrtc`" below was written generically,
+  before the concrete library was chosen. The actual choice, made the
+  following session and implemented starting Phase 2 (pieces 6-13): the
+  project uses **`libdatachannel`**, not Google's own `libwebrtc`
+  codebase — specifically *because* Google's `libwebrtc` is a huge
+  Chromium-based build (many hours, tens of GB), which would have
+  reintroduced the exact dependency-weight problem this very ADR exists
+  to avoid. `libdatachannel` is a small, focused library (MIT) that
+  implements only the WebRTC pieces this project needs (ICE, DTLS, SCTP →
+  DataChannel), builds in minutes via plain CMake, and is the
+  **permanent** transport choice here — not a temporary stand-in meant to
+  be swapped for the real `libwebrtc` once things "really work". Every
+  consequence and trade-off below (NAT traversal, DataChannel, encryption,
+  the transport being kept swappable behind its own interface) still
+  applies; only the specific library implementing it changed.
 
 ## Context
 
