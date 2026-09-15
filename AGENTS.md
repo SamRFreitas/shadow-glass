@@ -102,6 +102,23 @@ followed manually (ask "what did I rule out and why", "is this
 reversible", "what breaks if I choose differently" before closing out an
 ADR).
 
+**"Architecture Grilling"** (named 2026-09-04, during the NVENC-vs-FFmpeg
+decision that became ADR 0003) is the name for the specific pattern this
+takes when it goes well, and it is worth recognizing and repeating in
+future sessions: the AI proposes a recommendation with its reasoning; the
+user pushes back with a real, substantive counter-argument (not just
+"are you sure?"); the AI genuinely reconsiders the position, including
+catching and admitting its own flawed reasoning where that happened,
+rather than either stubbornly defending the first answer or simply
+agreeing to be agreeable; then the `grilling` skill's round-based
+question format (numbered questions, each with a recommended answer,
+answered by the user, repeated until no open questions remain) resolves
+every remaining branch of the decision. The user answers the questions
+they have real background for, and defers to the AI's recommendation on
+the ones they do not, per the teach-first rule elsewhere in this file.
+This sequence produced a better final decision than either side's
+opening position alone would have.
+
 ## Commit convention
 
 Commit messages in this repository follow the **Conventional Commits**
