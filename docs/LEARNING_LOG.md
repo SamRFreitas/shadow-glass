@@ -1,5 +1,60 @@
 # Logbook — Shadow Glass
 
+## 2026-09-04 — ADR 0003: FFmpeg over direct NVENC, and naming "Architecture Grilling"
+
+Resuming Phase 1's remaining piece (hardware H.264 encode), a second AI's
+recommendation (FFmpeg + `h264_nvenc`) reopened a question Claude had
+already leaned the other way on (direct NVENC, by analogy to ADR 0002's
+rejection of Google's `libwebrtc`). Working through it properly:
+
+- Claude first defended direct NVENC, but the user's counter-argument
+  (motivation/portfolio value, real precedent — OBS Studio and Sunshine
+  both build on FFmpeg/`libavcodec` instead of hand-rolling encoding)
+  exposed a real flaw in Claude's own analogy: the pain ADR 0002 avoided
+  was specifically Google `libwebrtc`'s multi-hour source build — and
+  that pain doesn't recur with FFmpeg, which ships ready-to-use prebuilt
+  Windows binaries. Worth remembering as a debugging-of-reasoning
+  moment, not just a technical one: a plausible-sounding analogy can
+  quietly smuggle in a difference that breaks it.
+- A separate process mistake, caught by the user mid-session: an
+  `ExitPlanMode` approval (a mechanical "you may act now" gate) got
+  treated as if it also meant "the user agrees with the open
+  recommendation written in the plan" — it didn't, and shouldn't have
+  been read that way. Corrected; the user had only been asking
+  questions, never asked for a decision to be made.
+- Ran a full `grilling` session on the corrected direction (FFmpeg,
+  wrapped behind a project-owned `H264Encoder` interface for
+  reversibility) across two rounds of numbered questions — the honest
+  end state, once every branch was resolved:
+  - FFmpeg's `h264_nvenc`, not direct NVENC, behind `H264Encoder`
+    (`Initialize`/`EncodeFrame`/`Shutdown`).
+  - Validated with a short ~3-second capture+encode loop (not a single
+    frame — needs to prove sequential encoding, not just that the
+    encoder starts), saved as raw `.h264`, played back in VLC.
+  - FFmpeg acquired as a prebuilt binary from gyan.dev (hash-verified,
+    same diligence as the OpenSSL install), installed **outside** the
+    repo (like OpenSSL, via `-DFFMPEG_ROOT`) rather than vendored in-repo
+    like `libdatachannel` — the closer precedent turned out to be
+    OpenSSL (a large prebuilt binary), not `libdatachannel` (small
+    source built from scratch).
+  - The **LGPL** build specifically, not GPL — only `h264_nvenc` is
+    needed (NVIDIA's own proprietary wrapper, not a GPL codec), and the
+    repo is public with no declared license yet, so there's no reason to
+    take on GPL redistribution obligations for codecs never used.
+  - `encode_test.cpp` duplicates `capture_test.cpp`'s ~30 lines of D3D11
+    setup rather than factoring it into a shared module yet — too little
+    duplication to justify an early refactor.
+- Full reasoning written up in `docs/decisions/0003-ffmpeg-nvenc-encode.md`.
+- The user named this back-and-forth pattern — propose, get pushed back
+  on with a real argument, genuinely reconsider (including admitting a
+  flawed analogy), then resolve what's left via `grilling`'s round-based
+  questions — **"Architecture Grilling"**. Recorded in `CLAUDE.md`/
+  `AGENTS.md`'s "Decision process" section as a named, recognizable
+  pattern worth repeating, not just this one session's outcome.
+
+**Next step**: get FFmpeg's LGPL shared build (gyan.dev) installed on the
+Acer Aspire, then write `encode_test.cpp` per ADR 0003.
+
 ## 2026-09-03 — Piece 13: the real transport, and the same bug twice in one day, in two languages
 
 Piece 13 wired the real connection into the UI: `LibDataChannelTransport`

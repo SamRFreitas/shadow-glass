@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Project Snapshot — 2026-09-05</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f6f3ec; --panel: #ece4d3; --panel-line: #ddd2b8;
+    --ink: #1b2430; --ink-soft: #4a5468; --accent: #c9722c; --muted: #b9b0a0;
+    --win: #2a5db0; --docs: #2f7d5f; --config: #8a93a6;
+    --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    --sans: "IBM Plex Sans", -apple-system, "Segoe UI", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #11151c; --panel: #1a2029; --panel-line: #2a3240;
+      --ink: #e8e3d6; --ink-soft: #a7b0c2; --accent: #e79350; --muted: #4a5568;
+      --win: #6fa3e0; --docs: #5fbf95; --config: #8f98a8;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--sans); line-height: 1.6; }
+  .page { max-width: 800px; margin: 0 auto; padding: 48px 24px 96px; }
+  .kicker { font-family: var(--mono); font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); }
+  h1 { font-family: var(--mono); font-size: clamp(24px, 5vw, 34px); font-weight: 600; margin: 8px 0 4px; text-wrap: balance; }
+  .subtitle { font-family: var(--mono); font-size: 14px; color: var(--ink-soft); margin: 0 0 28px; }
+  .headline { font-size: 16px; font-weight: 500; background: var(--panel); border-left: 4px solid var(--accent); padding: 16px 20px; border-radius: 6px; margin: 0 0 36px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: 12.5px; margin: 0 0 24px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+
+  .tree { font-family: var(--mono); font-size: 13.5px; background: var(--panel); border: 1px solid var(--panel-line); border-radius: 10px; padding: 22px 24px; overflow-x: auto; }
+  .tree .line { white-space: pre; }
+  .tree .path { }
+  .tree .note { color: var(--ink-soft); font-family: var(--sans); font-style: italic; }
+  .tree .root { color: var(--ink); font-weight: 600; }
+  .tree .mac { color: var(--accent); font-weight: 600; }
+  .tree .win { color: var(--win); font-weight: 600; }
+  .tree .docs { color: var(--docs); font-weight: 600; }
+  .tree .config { color: var(--config); }
+  .tree .vendor { color: var(--muted); font-style: italic; }
+
+  section { margin: 40px 0; padding-top: 32px; border-top: 1px solid var(--panel-line); }
+  h2 { font-family: var(--mono); font-size: 17px; font-weight: 600; margin: 0 0 12px; }
+  p { max-width: 66ch; }
+  code { font-family: var(--mono); font-size: 0.9em; background: var(--panel); border: 1px solid var(--panel-line); border-radius: 4px; padding: 0.1em 0.35em; }
+
+  .stat-row { display: flex; flex-wrap: wrap; gap: 14px; margin: 16px 0; }
+  .stat { background: var(--panel); border: 1px solid var(--panel-line); border-radius: 8px; padding: 12px 16px; min-width: 120px; }
+  .stat .n { font-family: var(--mono); font-size: 22px; font-weight: 600; color: var(--accent); }
+  .stat .label { font-size: 12px; color: var(--ink-soft); }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="kicker">Project Snapshot — a dated record of a codebase's shape</div>
+  <h1>Shadow Glass</h1>
+  <p class="subtitle">2026-09-05 — end of Phase 2, ADR 0003 just accepted, Phase 1 (NVENC/FFmpeg encode) about to start</p>
+
+  <p class="headline">
+    This is the first of a series: a dated, visual record of a project's
+    directory structure at a specific milestone — not the code itself, just
+    the shape of it, annotated with what each part is for and how it got
+    there. The idea is to make a project's evolution actually visible over
+    time, the same way a photo series shows growth that's hard to see
+    day-to-day.
+  </p>
+
+  <div class="stat-row">
+    <div class="stat"><div class="n">13</div><div class="label">connectivity pieces shipped</div></div>
+    <div class="stat"><div class="n">3</div><div class="label">ADRs accepted</div></div>
+    <div class="stat"><div class="n">2</div><div class="label">languages (Swift + C++)</div></div>
+    <div class="stat"><div class="n">3</div><div class="label">visual field-note pages</div></div>
+  </div>
+
+  <section style="border-top:none; margin-top:0; padding-top:0;">
+    <h2>The tree, as it stands today</h2>
+    <div class="legend">
+      <span><i class="dot" style="background:var(--config)"></i>Harness / config</span>
+      <span><i class="dot" style="background:var(--accent)"></i>Mac client (Swift)</span>
+      <span><i class="dot" style="background:var(--win)"></i>Windows server (C++)</span>
+      <span><i class="dot" style="background:var(--docs)"></i>Docs / decisions / log</span>
+      <span><i class="dot" style="background:var(--muted)"></i>Vendored (not ours)</span>
+    </div>
+    <div class="tree"><div class="line"><span class="root">shadow-glass/</span></div><div class="line">├── <span class="config">CLAUDE.md</span>                          <span class="note">— project harness: hardware, phases, conventions</span></div><div class="line">├── <span class="config">AGENTS.md</span>                         <span class="note">— same content, kept in sync, for OpenCode</span></div><div class="line">├── <span class="config">.gitignore</span> · <span class="config">.gitmodules</span></div><div class="line">├── <span class="config">dev-shell.bat</span>                     <span class="note">— opens a Dev Command Prompt at repo root</span></div><div class="line">│</div><div class="line">├── <span class="mac">client-macos/</span>                       <span class="note">— Swift Package Manager, no .xcodeproj</span></div><div class="line">│   ├── <span class="mac">Package.swift</span></div><div class="line">│   ├── <span class="mac">build-app-bundle.sh</span>              <span class="note">— wraps swift build into a real .app</span></div><div class="line">│   └── <span class="mac">Sources/</span></div><div class="line">│       ├── <span class="mac">CLibDataChannel/</span>              <span class="note">— exposes libdatachannel's C header to Swift</span></div><div class="line">│       └── <span class="mac">ShadowGlassClient/</span></div><div class="line">│           ├── ShadowGlassClientApp.swift  <span class="note">— SwiftUI shell</span></div><div class="line">│           ├── Transport.swift             <span class="note">— our own protocol, not tied to any lib</span></div><div class="line">│           ├── LibDataChannelTransport.swift <span class="note">— the real transport (piece 13)</span></div><div class="line">│           └── Info.plist                  <span class="note">— embedded for Local Network permission</span></div><div class="line">│</div><div class="line">├── <span class="win">server-windows/</span>                     <span class="note">— C++, built via CMake</span></div><div class="line">│   ├── CMakeLists.txt · build.bat · README.md</div><div class="line">│   └── <span class="win">src/</span></div><div class="line">│       ├── capture_test.cpp          <span class="note">— Phase 1: Desktop Duplication API</span></div><div class="line">│       ├── datachannel_offer_test.cpp <span class="note">— piece 7: native PeerConnection</span></div><div class="line">│       └── signaling_test.cpp        <span class="note">— pieces 10-11: real WebRTC answerer</span></div><div class="line">│</div><div class="line">├── <span class="docs">docs/</span></div><div class="line">│   ├── LEARNING_LOG.md               <span class="note">— one entry per session, chronological</span></div><div class="line">│   ├── SETUP.md                      <span class="note">— dependency checklist + known dead ends</span></div><div class="line">│   ├── protocol.md                   <span class="note">— the signaling wire format (Mac ↔ Windows contract)</span></div><div class="line">│   ├── where-things-run.html         <span class="note">— field notes: what runs where (piece 4)</span></div><div class="line">│   ├── anatomy-of-an-offer.html      <span class="note">— field notes: SDP decoded line by line (piece 8)</span></div><div class="line">│   ├── mac-vs-windows-networking.html <span class="note">— field notes: the ARC/socket saga (piece 12-13)</span></div><div class="line">│   └── <span class="docs">decisions/</span></div><div class="line">│       ├── 0001-custom-transport-vs-rdp.md</div><div class="line">│       ├── 0002-libwebrtc-as-transport.md   <span class="note">— libdatachannel, permanent choice</span></div><div class="line">│       └── 0003-ffmpeg-nvenc-encode.md      <span class="note">— today's decision</span></div><div class="line">│</div><div class="line">└── <span class="vendor">third_party/libdatachannel/</span>       <span class="note">— vendored submodule, WebRTC via C++</span></div></div>
+  </section>
+
+  <section>
+    <h2>What this snapshot doesn't show</h2>
+    <p>
+      On purpose: build output (<code>.build/</code>, <code>build/</code>),
+      the vendored library's own huge internal tree, and anything
+      gitignored. The point of a snapshot is the shape <em>we</em> authored,
+      not what a toolchain generates or a dependency brings along.
+    </p>
+  </section>
+
+  <section>
+    <h2>Where this fits</h2>
+    <p>
+      This page was made the same day the decision to start a second,
+      separate project — a research/learning journal about harness
+      engineering itself — was made. This snapshot is the "before" picture:
+      what Shadow Glass looked like the day that journal was born.
+    </p>
+  </section>
+</div>
+</body>
+</html>

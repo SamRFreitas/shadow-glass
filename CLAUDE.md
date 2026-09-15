@@ -99,6 +99,18 @@ followed manually (ask "what did I rule out and why", "is this
 reversible", "what breaks if I choose differently" before closing out an
 ADR).
 
+**"Architecture Grilling"** (named 2026-09-04, during the NVENC-vs-FFmpeg
+decision — ADR 0003) is the specific shape this takes when it works well:
+Claude proposes a recommendation, the user pushes back with a real
+counter-argument, Claude genuinely reconsiders (including catching its
+own flawed reasoning, not just conceding to be agreeable), and the
+`grilling` skill's round-based question format resolves what's left —
+recommendation attached to every question, decisions the user has
+background for answered directly, others deferred to Claude's
+recommendation per the teach-first rule below. Worth naming and
+recognizing when it's happening, since it produced a better decision than
+either side's opening position.
+
 ## Commit convention
 
 Commit messages follow **Conventional Commits**: `type(scope): description`,
