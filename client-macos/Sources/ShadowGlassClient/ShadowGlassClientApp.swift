@@ -36,7 +36,7 @@ struct ContentView: View {
     // for connection details" — a private LAN address isn't reachable
     // from outside this network, so publishing it isn't a risk). No
     // discovery/config mechanism exists yet.
-    private let windowsHost = "192.168.15.9"
+    private let windowsHost = "192.168.15.8"
 
     var body: some View {
         VStack(spacing: 16) {
