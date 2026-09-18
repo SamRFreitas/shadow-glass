@@ -1,5 +1,12 @@
 // signaling_test.cpp
 //
+// Piece 10 built a raw TCP server on Windows, using Winsock2 (the native
+// Windows sockets API), that reads the newline-delimited JSON messages
+// docs/protocol.md defines (offer/answer/candidate) — but only printed
+// what it saw, with no libdatachannel wiring, on purpose: proving we
+// could read the right message before adding a real PeerConnection on
+// top of it.
+//
 // Piece 11 (this version) wires it up for real: this program is always
 // the *answerer* (docs/protocol.md's exchange sequence has the Mac send
 // the offer first) — when a real 'offer' arrives, it hands it to a
@@ -20,6 +27,8 @@
 
 #include <winsock2.h>
 #include <ws2tcpip.h>
+
+#include "rtc/rtc.hpp"
 
 // Not a new dependency: this header already lives in the repo, vendored
 // as one of libdatachannel's own submodules (third_party/libdatachannel/
@@ -46,7 +55,7 @@ static void sendJson(SOCKET clientSocket, const json& message) {
 // Parses one line of the wire format and, now, acts on it: feeds an
 // offer/candidate to the real PeerConnection instead of just printing it.
 // The PeerConnection reacts on its own (asynchronously, via the callbacks
-// set up in main()) by producing our own answer and our own candidates.
+// set up in main()) by producing our answer and our own candidates.
 static void handleMessage(const std::string& line, rtc::PeerConnection& pc) {
     if (line.empty()) return;
 
@@ -121,118 +130,116 @@ int main() {
 
     printf("Listening on port %d. Waiting for a connection...\n", SIGNALING_PORT);
 
-    // Main accept loop — accept multiple connections sequentially.
-    // Each iteration handles one client, then returns to accept the next.
-    while (true) {
-        // Blocks here until something actually connects.
-        SOCKET clientSocket = accept(listenSocket, nullptr, nullptr);
-        if (clientSocket == INVALID_SOCKET) {
-            fprintf(stderr, "accept() failed: %d\n", WSAGetLastError());
-            break; // exit the while loop and cleanup
-        }
-
-        printf("Client connected. Reading data...\n");
-
-        // PeerConnection configuration — each client gets its own PC instance.
-        rtc::InitLogger(rtc::LogLevel::Warning);
-        rtc::Configuration config;
-        rtc::PeerConnection pc(config);
-
-        // Keeps the incoming DataChannel alive for as long as main() keeps
-        // running this iteration, the same reason pc above is created inside
-        // the while loop instead of outside. Without this, the shared_ptr
-        // onDataChannel hands us below is the *only* reference to that
-        // object — the moment its lambda returns, the reference count drops
-        // to zero and the channel gets destroyed.
-        std::shared_ptr<rtc::DataChannel> incomingDataChannel;
-
-        // Fires once the library has generated our side's answer, which
-        // happens automatically after setRemoteDescription() below sees an
-        // offer — we never call createDataChannel() or ask for an offer
-        // ourselves, since answering (not offering) is this program's fixed
-        // role in docs/protocol.md's exchange.
-        pc.onLocalDescription([clientSocket](rtc::Description description) {
-            json out;
-            out["type"] = description.typeString(); // "answer"
-            out["sdp"] = std::string(description);
-            sendJson(clientSocket, out);
-            printf("Sent our '%s' back to the Mac.\n", description.typeString().c_str());
-        });
-
-        // Fires once per ICE candidate our side discovers — each one is sent
-        // back the moment it's found, not batched, matching the "no end-of-
-        // candidates marker" simplification docs/protocol.md already documents.
-        pc.onLocalCandidate([clientSocket](rtc::Candidate candidate) {
-            json out;
-            out["type"] = "candidate";
-            out["candidate"] = candidate.candidate();
-            out["mid"] = candidate.mid();
-            sendJson(clientSocket, out);
-            printf("Sent one of our candidates back to the Mac.\n");
-        });
-
-        // Fires when the Mac's DataChannel actually reaches us — this is the
-        // payoff of the whole exchange: proof the negotiation above actually
-        // worked, without a human copy-pasting anything (piece 8's manual test,
-        // now automatic).
-        pc.onDataChannel([&incomingDataChannel](std::shared_ptr<rtc::DataChannel> dc) {
-            printf("DataChannel '%s' received from the Mac!\n", dc->label().c_str());
-            incomingDataChannel = dc; // the actual fix -- see the comment above
-
-            // The channel handed to us here can already be open, with a
-            // message already sitting in its internal queue, before we ever
-            // get a chance to register onMessage below -- a real race, not
-            // hypothetical (it silently swallowed the very first "Hello Mac"
-            // click during piece 13's testing). receive() only works while
-            // onMessage is unset, so drain anything already waiting first,
-            // then subscribe for whatever arrives after.
-            while (auto msg = dc->receive()) {
-                if (std::holds_alternative<std::string>(*msg)) {
-                    printf("Message from Mac: %s\n", std::get<std::string>(*msg).c_str());
-                }
-            }
-
-            dc->onOpen([]() { printf("DataChannel is open.\n"); });
-            dc->onMessage([](rtc::message_variant data) {
-                if (std::holds_alternative<std::string>(data)) {
-                    printf("Message from Mac: %s\n", std::get<std::string>(data).c_str());
-                }
-            });
-        });
-
-        // TCP only guarantees a stream of bytes, not message boundaries — one
-        // recv() call might return half a line, or several lines glued
-        // together. Accumulating into a string and pulling out each complete
-        // line (up to '\n') handles both cases correctly.
-        std::string accumulated;
-        char buffer[1024];
-        int bytesReceived;
-        while ((bytesReceived = recv(clientSocket, buffer, sizeof(buffer) - 1, 0)) > 0) {
-            accumulated.append(buffer, bytesReceived);
-
-            size_t newlinePos;
-            while ((newlinePos = accumulated.find('\n')) != std::string::npos) {
-                std::string line = accumulated.substr(0, newlinePos);
-                accumulated.erase(0, newlinePos + 1);
-                printf("Received line: %s\n", line.c_str());
-                handleMessage(line, pc);
-            }
-        }
-
-        printf("Client disconnected.\n");
-        if (!accumulated.empty()) {
-            printf("(leftover data with no trailing newline -- handling anyway)\n");
-            handleMessage(accumulated, pc);
-        }
-
-        // Close ONLY the client socket — keep listenSocket open for the next connection.
-        closesocket(clientSocket);
-        // Note: listenSocket is intentionally NOT closed here so the while loop
-        // can accept another connection. It will be cleaned up after the outer
-        // while loop exits.
+    // Blocks here until something actually connects.
+    SOCKET clientSocket = accept(listenSocket, nullptr, nullptr);
+    if (clientSocket == INVALID_SOCKET) {
+        fprintf(stderr, "accept() failed: %d\n", WSAGetLastError());
+        closesocket(listenSocket);
+        WSACleanup();
+        return 1;
     }
 
-    // Program exit: cleanup the listen socket and Winsock.
+    printf("Client connected. Reading data...\n");
+
+    // Warning level only — we don't need the library's own internal trace,
+    // just our own output (same choice as datachannel_offer_test.cpp).
+    rtc::InitLogger(rtc::LogLevel::Warning);
+
+    rtc::Configuration config;
+    rtc::PeerConnection pc(config);
+
+    // Keeps the incoming DataChannel alive for as long as main() keeps
+    // running, the same reason `pc` above is a local variable here
+    // instead of something temporary. Without this, the shared_ptr
+    // onDataChannel hands us below is the *only* reference to that
+    // object — the moment its lambda returns, the reference count drops
+    // to zero and the channel gets destroyed, which is exactly what the
+    // "SCTP resetting stream 1" log line right after "DataChannel is
+    // open" was: real, not hypothetical, confirmed during piece 13's
+    // testing. (The direct C++ equivalent of the Swift ARC bug that took
+    // a whole session to find on the Mac side — see docs/LEARNING_LOG.md.)
+    std::shared_ptr<rtc::DataChannel> incomingDataChannel;
+
+    // Fires once the library has generated our side's answer, which
+    // happens automatically after setRemoteDescription() below sees an
+    // offer — we never call createDataChannel() or ask for an offer
+    // ourselves, since answering (not offering) is this program's fixed
+    // role in docs/protocol.md's exchange.
+    pc.onLocalDescription([clientSocket](rtc::Description description) {
+        json out;
+        out["type"] = description.typeString(); // "answer"
+        out["sdp"] = std::string(description);
+        sendJson(clientSocket, out);
+        printf("Sent our '%s' back to the Mac.\n", description.typeString().c_str());
+    });
+
+    // Fires once per ICE candidate our side discovers — each one is sent
+    // back the moment it's found, not batched, matching the "no end-of-
+    // candidates marker" simplification docs/protocol.md already documents.
+    pc.onLocalCandidate([clientSocket](rtc::Candidate candidate) {
+        json out;
+        out["type"] = "candidate";
+        out["candidate"] = candidate.candidate();
+        out["mid"] = candidate.mid();
+        sendJson(clientSocket, out);
+        printf("Sent one of our candidates back to the Mac.\n");
+    });
+
+    // Fires when the Mac's DataChannel actually reaches us — this is the
+    // payoff of the whole exchange: proof the negotiation above actually
+    // worked, without a human copy-pasting anything (piece 8's manual test,
+    // now automatic).
+    pc.onDataChannel([&incomingDataChannel](std::shared_ptr<rtc::DataChannel> dc) {
+        printf("DataChannel '%s' received from the Mac!\n", dc->label().c_str());
+        incomingDataChannel = dc; // the actual fix -- see the comment above
+
+        // The channel handed to us here can already be open, with a
+        // message already sitting in its internal queue, before we ever
+        // get a chance to register onMessage below -- a real race, not
+        // hypothetical (it silently swallowed the very first "Hello Mac"
+        // click during piece 13's testing). receive() only works while
+        // onMessage is unset, so drain anything already waiting first,
+        // then subscribe for whatever arrives after.
+        while (auto msg = dc->receive()) {
+            if (std::holds_alternative<std::string>(*msg)) {
+                printf("Message from Mac: %s\n", std::get<std::string>(*msg).c_str());
+            }
+        }
+
+        dc->onOpen([]() { printf("DataChannel is open.\n"); });
+        dc->onMessage([](rtc::message_variant data) {
+            if (std::holds_alternative<std::string>(data)) {
+                printf("Message from Mac: %s\n", std::get<std::string>(data).c_str());
+            }
+        });
+    });
+
+    // TCP only guarantees a stream of bytes, not message boundaries — one
+    // recv() call might return half a line, or several lines glued
+    // together. Accumulating into a string and pulling out each complete
+    // line (up to '\n') handles both cases correctly.
+    std::string accumulated;
+    char buffer[1024];
+    int bytesReceived;
+    while ((bytesReceived = recv(clientSocket, buffer, sizeof(buffer) - 1, 0)) > 0) {
+        accumulated.append(buffer, bytesReceived);
+
+        size_t newlinePos;
+        while ((newlinePos = accumulated.find('\n')) != std::string::npos) {
+            std::string line = accumulated.substr(0, newlinePos);
+            accumulated.erase(0, newlinePos + 1);
+            printf("Received line: %s\n", line.c_str());
+            handleMessage(line, pc);
+        }
+    }
+
+    printf("Client disconnected.\n");
+    if (!accumulated.empty()) {
+        printf("(leftover data with no trailing newline -- handling anyway)\n");
+        handleMessage(accumulated, pc);
+    }
+
+    closesocket(clientSocket);
     closesocket(listenSocket);
     WSACleanup();
 
