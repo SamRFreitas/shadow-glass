@@ -193,8 +193,12 @@ it goes missing, recreate it with:
 }
 ```
 
-As of 2026-10-05, `the-architect` is read-only (no git access, no
-writing) until its updated blueprint is compiled by `construct`.
+As of 2026-10-05, `the-architect` is compiled from its updated
+blueprint: it can read the repository's history (git, read-only) and
+write the records of its own decisions — `docs/decisions/`,
+`docs/specs/plan-*.md` and this file — each write only after the person
+approves the exact text. It still does not write code or invoke other
+agents.
 
 ## Mac client: SPM instead of an Xcode project
 
