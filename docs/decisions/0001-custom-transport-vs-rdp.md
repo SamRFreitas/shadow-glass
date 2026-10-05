@@ -4,6 +4,21 @@
   [ADR 0002](0002-libwebrtc-as-transport.md) — capture and encode below
   still stand)
 - Date: 2026-08-27
+- **Update (2026-10-05)**: three things in the text below no longer read
+  correctly on their own. The original wording is kept as the record of
+  what was decided at the time.
+  - Every "`libwebrtc`" below means **`libdatachannel`** — see the
+    2026-09-04 update at the top of
+    [ADR 0002](0002-libwebrtc-as-transport.md).
+  - Step 2 says "see ADR 0002 for why NVENC instead of Intel Quick
+    Sync". ADR 0002 never covered that, and the reasoning isn't written
+    down anywhere else either. Quick Sync (the i5-7200U's own hardware
+    encoder) remains an available alternative, not a rejected one.
+  - The last consequence below — validating in Phase 1 that NVENC
+    actually works on the Acer Aspire — is **still pending**. No encoder
+    has been run on that machine. Screen capture is in the same state:
+    `capture_test.cpp` is written, but its first run on the Acer failed
+    and was never retried (work moved to networking instead).
 
 ## Context
 

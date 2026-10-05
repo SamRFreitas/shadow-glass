@@ -1,5 +1,196 @@
 # Logbook — Shadow Glass
 
+## 2026-10-05 — Coming back: Phase 2 re-tested, and the records corrected
+
+First product session since 2026-09-04; everything in between was
+harness work. No code was written. The session re-ran the one test that
+exists end-to-end and then fixed what the records got wrong.
+
+**Phase 2 re-tested and still working.** `signaling_test.exe` on the
+Acer, `swift run` on the Mac, **Connect**, then **Send Hello Mac** four
+times: the Windows console printed `Message from Mac: Hello Mac` four
+times. For that line to appear, the Windows build, LAN reachability,
+signaling (per `docs/protocol.md`), the WebRTC connection and the
+DataChannel all had to work in sequence. The Acer's LAN IP is now
+`192.168.15.9`.
+
+What that test does not answer: binary payloads (only short text has
+travelled), volume or latency, the Windows → Mac direction, and
+reconnecting.
+
+**Corrections to earlier records:**
+
+- **The firewall.** The piece 10 entry (2026-09-02) says inbound
+  connections started working once the Windows network was switched to
+  the **Private** profile. That is not the current working setup. The
+  network is on the **Public** profile, and the connection works because
+  the firewall permissions were changed to allow it on that profile.
+  That change is also what resolved the "Connection refused" seen in
+  September.
+- **The `accept()` loop.** A change making `signaling_test.cpp` accept
+  more than one connection was committed (`7e6b5e5`) and then reverted
+  (`347afab`). The file is back to a single `accept()`: one connection
+  per run, and both sides need restarting to connect again. The Mac side
+  doesn't reconnect either — once the connection ends, the Connect
+  button stays disabled. Left as a known limit of a test program.
+- **Screen capture was never validated.** ADR 0003 and `FOUNDATION.md`
+  both said it was. What happened: `capture_test.exe` failed when first
+  opened on the Acer, and the work moved to a simple network test to
+  isolate the connection from the video — first by terminal, then the
+  Connect button, then Send Hello. Nobody went back to it.
+- **The encode was never started.** `FOUNDATION.md` said "in progress".
+  There is no `H264Encoder.h`, no `encode_test.cpp` and no FFmpeg in
+  `CMakeLists.txt`.
+
+**Records updated to match**: dated update notes on ADRs 0001, 0002 and
+0003 (their original text is untouched), `FOUNDATION.md`'s hardware,
+roadmap and status sections, the same three sections in `CLAUDE.md`, and
+a firewall note in `docs/SETUP.md`.
+
+**Two housekeeping decisions, same session:**
+
+- **The Windows IP moved out of the source** into a gitignored
+  `client-macos/.env` (`WINDOWS_HOST`), with a committed `.env.example`
+  and a small parser in `LocalConfig.swift`. Not for secrecy — a private
+  LAN address in a public history is still considered harmless — but
+  because the DHCP address changed (`.8` → `.9`) and each change meant
+  a source edit and a commit. If the file is missing, the app shows a
+  warning and keeps Connect disabled.
+- **`CLAUDE.md` and `.claude/` are now gitignored.** They are generated
+  by `construct` from Free Wings' blueprints; a change to an agent
+  belongs in that project, not here. `FOUNDATION.md` stays tracked — it
+  is the source.
+
+**Open before any encode code**, all recorded in ADR 0003's update:
+getting `capture_test` to run; confirming the 940MX supports NVENC;
+confirming where an LGPL FFmpeg build comes from. Further out: whether
+video travels over the DataChannel or a media track (ADR 0002's update).
+
+## 2026-10-02 — `construct` re-run: Claude Code bootstrap (recompile, second pass)
+
+Re-ran `@CONSTRUCT @HARI-SELDON` against this project from Free Wings,
+again in **Claude Code**. The tool was detected from the runtime
+environment (`CLAUDECODE`, `CLAUDE_CODE_*` variables). The earlier run's
+outputs had been removed from the working tree, so there was nothing to
+overwrite: `CLAUDE.md` was deleted (still tracked in git) and there was
+no `.claude/`. Free Wings' `CONSTRUCT.md` and adapters had been edited
+in between, so this run tests those edits.
+
+Mode: **recompile**, from the current working-tree `FOUNDATION.md`,
+using `hangar/blueprints/adapters/claudecode.md`. Generated:
+
+- `CLAUDE.md`: compiled excerpt of `FOUNDATION.md`.
+- `.claude/agents/`: `the-architect`, `programmer`, `tester`, `deneir`,
+  `researcher` and `writer`. Their `tools` come verbatim from the
+  adapter table, and `programmer`/`tester` have no `tools` field.
+- `.claude/skills/<name>/SKILL.md`: `loop-status`, `write-diary` and
+  `write-article`.
+
+What changed from the first pass:
+
+- **The outputs mention only Claude Code** (a new rule in
+  `CONSTRUCT.md`). The `programmer` and `the-architect` blueprints use
+  `AGENTS.md` as an example; the compiled copies drop it. The blueprints
+  themselves are unchanged.
+- **No added header comment.** The first pass added one explaining
+  harness-relative paths. This pass compiled strictly as the adapter
+  says: the blueprint body minus its orientation comment.
+
+Still open:
+
+- A handful of harness-internal paths remain in the compiled bodies:
+  `docs/reading-list.md` in `the-architect`, `deneir` and `loop-status`,
+  and `hangar/blueprints/agents/writer.md` in the two writing skills.
+  They resolve against `~/Lab/free-wings/`, not this repo.
+- `programmer` and `researcher` still refer to a `grilling` skill that
+  has no blueprint. Here, "Architecture Grilling" in `FOUNDATION.md` is
+  what applies.
+- `CLAUDE.md` and `AGENTS.md` are **tracked in git** in this repo, and
+  `.claude/` isn't in `.gitignore`. Whether to untrack and ignore them,
+  as with `.opencode/`, is the person's call. `construct` left
+  `.gitignore` alone.
+
+## 2026-10-02 — `construct` run: Claude Code bootstrap (recompile)
+
+Ran `@CONSTRUCT @HARI-SELDON` against this project from Free Wings, this
+time inside **Claude Code**. The tool was identified from its runtime
+environment (`CLAUDECODE=1`), not from which directories exist.
+
+Mode: **recompile**, because the target already had a `FOUNDATION.md`.
+That included the uncommitted edits in the working tree, read as-is.
+Following Free Wings' Claude Code adapter
+(`hangar/blueprints/adapters/claudecode.md`), the run generated:
+
+- `CLAUDE.md` — regenerated as a compiled excerpt of `FOUNDATION.md`.
+  It replaces the original hand-written `CLAUDE.md` from before the
+  harness, which `FOUNDATION.md` was condensed from and which its Status
+  section said was waiting to be regenerated. That version is still in
+  git history.
+- `.claude/agents/` — `the-architect`, `programmer`, `tester`, `deneir`,
+  `researcher` and `writer`. The `tools` lists come straight from the
+  adapter's mapping table:
+  - `the-architect`: read-only.
+  - `programmer` and `tester`: no `tools` field, so they inherit
+    everything.
+  - `deneir`, `researcher` and `writer`: limited to their own tools,
+    with path-level write limits enforced by each blueprint's text.
+- `.claude/skills/` — `loop-status`, `write-diary` and `write-article`,
+  one folder per skill with a `SKILL.md` inside.
+
+Deviations and issues:
+
+- The blueprint bodies are copied verbatim, the same way the OpenCode
+  run did it. They still contain paths that belong to the harness
+  (`hangar/...`, `docs/reading-list.md`, Free Wings' own
+  `FOUNDATION.md`). Each generated file now has a short header comment
+  saying those resolve against `~/Lab/free-wings/`.
+- `programmer`'s blueprint still mentions a `grilling` skill, but no
+  such skill blueprint exists, so `/grilling` won't resolve here. The
+  process in `FOUNDATION.md`'s "Decision process" is what applies.
+- `.claude/` isn't in `.gitignore` yet. The adapter recommends adding
+  it, as was done for `.opencode/`. That's left for the person to
+  decide, since `construct` doesn't edit project files outside the
+  generated outputs.
+- Free Wings' `CONSTRUCT.md` calls the adapter `claude.md`, but on disk
+  it's `claudecode.md`. That's a naming drift in the harness, not in
+  this project.
+
+## 2026-09-19 — First `construct` run: OpenCode bootstrap (recompile)
+
+Ran `@CONSTRUCT @HARI-SELDON` with target `shadow-glass` for the first
+time, bootstrapping this project for **OpenCode** from its own
+`FOUNDATION.md` (written 2026-09-06 as the tool-agnostic source of
+truth). This realizes the plan recorded in that document's Status
+section — `AGENTS.md`/`CLAUDE.md` were a first draft awaiting
+regeneration by `construct`.
+
+Mode: **recompile** (the target already had a `FOUNDATION.md`). What
+was generated, per Free Wings' `opencode.md` adapter:
+
+- `AGENTS.md` — regenerated as a compiled excerpt of `FOUNDATION.md`
+  (philosophy, hardware, architecture decisions, phase roadmap,
+  repository structure, conventions, agent/skill inventory, status).
+- `.opencode/agents/` — `the-architect.md`, `programmer.md`,
+  `tester.md`, `deneir.md`, `researcher.md`, `writer.md`, each with
+  the OpenCode YAML frontmatter (`description`, `mode`, `tools`) taken
+  from the adapter's verbatim mapping tables (e.g. `the-architect` is
+  `primary` and read-only; `programmer`/`tester` are `all` with full
+  tool access; `deneir`/`researcher`/`writer` carry the per-blueprint
+  write restrictions). `researcher` also gets `webfetch`/`websearch`
+  since OpenCode in this environment exposes both.
+- `.opencode/skills/` — `loop-status`/`write-diary`/`write-article`
+  each as a folder-per-skill with `SKILL.md` inside, `name` +
+  `description` frontmatter only (no `tools` field, per the adapter).
+
+Notable: `.opencode/` was already in `.gitignore` (committed earlier as
+`chore: add .opencode/ to gitignore`), so the generated tool directory
+won't be committed — consistent with the harness rule that tool-specific
+directories are regenerable outputs, not source. `CLAUDE.md` was left
+untouched: compiling it is a Claude Code adapter job, not an OpenCode run.
+
+No issues. The write-permission test passed; `docs/LEARNING_LOG.md`
+existed, so this entry is the record of the operation.
+
 ## 2026-09-04 — ADR 0003: FFmpeg over direct NVENC, and naming "Architecture Grilling"
 
 Resuming Phase 1's remaining piece (hardware H.264 encode), a second AI's

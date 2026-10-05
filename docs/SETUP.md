@@ -37,6 +37,21 @@ git submodule update --init --recursive
   -DOPENSSL_ROOT_DIR=/opt/homebrew/opt/openssl@3
   ```
 
+### Local config (`.env`)
+
+The client reads the Windows server's LAN address from
+`client-macos/.env`, which is gitignored. On a fresh clone:
+
+```
+cd client-macos
+cp .env.example .env
+```
+
+then set `WINDOWS_HOST` to the address `ipconfig` reports on the Windows
+machine. Without it the app still opens, but shows a warning and keeps
+**Connect** disabled. If the address changes later (it comes from the
+router's DHCP), edit `.env` and rebuild — no commit involved.
+
 ### Build
 
 ```
@@ -82,6 +97,20 @@ cd server-windows
 cmake -B build -DOPENSSL_ROOT_DIR="C:\Program Files\OpenSSL-Win64"
 cmake --build build
 ```
+
+### Firewall and network profile
+
+The Mac reaches the server on TCP port **45180** (signaling). Windows
+Firewall has to allow that inbound connection **on the profile the
+network is currently classified as** — allowing an app on "Private"
+does nothing while Windows considers the network "Public", and the
+other way round. On the Acer the network is on the **Public** profile,
+with the permissions set to allow the connection there (confirmed
+working 2026-10-05).
+
+When this is wrong nothing reports an error on the Windows side; the
+Mac just fails to connect. `ping` is not a useful check (Windows doesn't
+answer it by default) — from the Mac, use `nc -v <windows-ip> 45180`.
 
 ## Known dead ends (documented so we don't retry them blind)
 

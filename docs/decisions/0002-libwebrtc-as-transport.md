@@ -20,6 +20,20 @@
   consequence and trade-off below (NAT traversal, DataChannel, encryption,
   the transport being kept swappable behind its own interface) still
   applies; only the specific library implementing it changed.
+- **Update (2026-10-05)**: the transport was re-tested end-to-end after
+  a month away from it and still works: signaling over TCP port 45180,
+  the DataChannel opening, and four "Hello Mac" messages in a row
+  arriving on the Windows console. What that test does not cover:
+  - Only short text has travelled (`LowLatencyTransport` has just
+    `send(_ message: String)`), and only Mac → Windows was exercised.
+  - `signaling_test` accepts one connection per run. Reconnecting means
+    restarting both sides. That is a known limit of a test program, not
+    a transport bug.
+  - **Still undecided, and worth its own ADR when the encoder gets
+    connected to the network**: whether video travels over the
+    DataChannel or over a media track (RTP). `libdatachannel` offers
+    both; this ADR's "low-latency video/audio transport" wording never
+    chose between them.
 
 ## Context
 

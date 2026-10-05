@@ -5,6 +5,27 @@
 - Related: [ADR 0001](0001-custom-transport-vs-rdp.md) (NVENC named as the
   intended hardware encoder), [ADR 0002](0002-libwebrtc-as-transport.md)
   (the precedent this ADR both follows and corrects a misapplication of)
+- **Update (2026-10-05)**: the decision stands, but the state around it
+  was recorded more optimistically than it was.
+  - **Correction to Context**: screen capture was *not* "already
+    validated". `capture_test.cpp` is written, its first run on the Acer
+    failed, and it was never retried — work moved to networking to
+    isolate the connection from the video. Capture has to run before
+    `encode_test.cpp` can reuse its setup.
+  - **Nothing in this ADR is implemented yet**: no `H264Encoder.h`, no
+    `encode_test.cpp`, no `FFMPEG_ROOT` in `CMakeLists.txt`, no FFmpeg
+    entry in `docs/SETUP.md`.
+  - **Two assumptions below are unverified** and need checking before
+    any encode code is written. Neither has been tested or looked up:
+    1. That the GeForce 940MX supports NVENC at all. Having an NVIDIA
+       GPU doesn't guarantee it; NVIDIA's support matrix needs checking,
+       and running `h264_nvenc` once on the Acer settles it.
+    2. That gyan.dev publishes an **LGPL** "shared" build. If it only
+       ships GPL builds, the LGPL requirement needs a different source.
+  - If NVENC turns out to be unavailable, the fallback is FFmpeg's
+    `h264_qsv` (Intel Quick Sync, on the i5-7200U) behind the same
+    `H264Encoder` interface — an amendment to this ADR, not a rewrite of
+    the approach.
 
 ## Context
 
