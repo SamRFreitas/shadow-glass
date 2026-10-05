@@ -1,5 +1,54 @@
 # Logbook — Shadow Glass
 
+## 2026-10-05 — `construct` re-run: Claude Code bootstrap (recompile, third pass)
+
+Ran `@CONSTRUCT @HARI-SELDON` against this project from Free Wings at
+17:21 (-03), in **Claude Code**. The tool was detected from the runtime
+environment (`CLAUDECODE`, `CLAUDE_CODE_*` variables). Target:
+`/Users/samrfreitas/Lab/shadow-glass`. There was nothing to overwrite:
+neither `CLAUDE.md` nor `.claude/` existed in the working tree.
+
+Mode: **recompile**, from the current `FOUNDATION.md`, using
+`hangar/blueprints/adapters/claudecode.md`. Generated:
+
+- `CLAUDE.md`: compiled excerpt of `FOUNDATION.md`, now including the
+  Phase 1 staircase and the "Working sessions" section.
+- `.claude/agents/`: `the-architect`, `programmer`, `tester`, `deneir`,
+  `researcher` and `writer`. Their `tools` come verbatim from the
+  adapter table; `programmer` and `tester` have no `tools` field.
+- `.claude/skills/<name>/SKILL.md`: `loop-status`, `write-diary` and
+  `write-article`.
+
+What this pass brings:
+
+- **`the-architect` is compiled from its updated blueprint**: `tools`
+  is now `Read, Grep, Glob, Bash, Write, Edit`, and the body carries the
+  "Write permissions" and "Reading the repository's history" sections.
+  It can read git and write the records of its own decisions, with
+  approval. The changes requested earlier today are in.
+- As in the second pass, the compiled copies of `the-architect` and
+  `programmer` drop the blueprints' mention of another tool's file; the
+  blueprints themselves are unchanged.
+
+Still open:
+
+- **`.claude/settings.json` is missing**, so a plain `claude` here does
+  not open as `the-architect` until it is recreated (the snippet is in
+  `FOUNDATION.md`, "Working sessions"). `construct` does not write that
+  file.
+- **`FOUNDATION.md` said `the-architect` was read-only** "until its
+  updated blueprint is compiled by `construct`" (end of "Working
+  sessions"). This run made that sentence out of date. It was corrected
+  by hand right after, at the person's request, to describe what the
+  agent can do now. The generated files were not affected: the agent is
+  compiled from the blueprint, and `CLAUDE.md` already described the new
+  behaviour.
+- Same as before: a few harness-internal paths remain in the compiled
+  bodies (`docs/reading-list.md`, `hangar/blueprints/agents/writer.md`)
+  and resolve against `~/Lab/free-wings/`; `programmer` refers to a
+  `grilling` skill that has no blueprint — "Architecture Grilling" in
+  `FOUNDATION.md` is what applies here.
+
 ## 2026-10-05 — Coming back: Phase 2 re-tested, and the records corrected
 
 First product session since 2026-09-04; everything in between was
