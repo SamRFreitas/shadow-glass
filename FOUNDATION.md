@@ -85,6 +85,50 @@ than an earlier one if that's where the useful next step is.
 - `docs/snapshots/project-snapshot-*.html` — dated "Snapshots" of the
   directory structure at a milestone, one per milestone
 
+## Working sessions (Claude Code)
+
+This is a choice made for this project, not something the Free Wings
+harness generates. How each agent is opened depends on whether it needs
+a conversation or just a task:
+
+- **`claude`** with no arguments, run in this repository, opens the
+  session as **`the-architect`** — the entry point, where planning and
+  routing happen. That default comes from a local settings file (below).
+- **`claude --agent programmer`** opens a session as `programmer`, for
+  implementation. It overrides the default for that session only. The
+  same applies to `tester` when it needs to ask questions back.
+- **`researcher`, `deneir` and `writer`** are called as subagents
+  (`@agent-<name>`) from inside a session: they take one request,
+  produce a file and finish.
+
+Why the split: a subagent works alone and returns a single report
+through the session that called it, so it can't explain a step, ask
+what the person would do and wait for the answer. An agent that teaches
+while it works needs to be the session itself.
+
+Two things to keep in mind:
+
+- **Sessions don't share a conversation.** What crosses from one to the
+  next is either a message copied over by hand or something written to
+  the repository. A decision that only exists in a conversation is lost
+  to the next agent.
+- **Keep plan mode off in `the-architect` sessions.** It has no tools to
+  write a plan file, and subagents called from a plan-mode session can't
+  write their output either.
+
+The default lives in `.claude/settings.json`, which sits inside the
+gitignored `.claude/` folder and is therefore local to each machine. If
+it goes missing, recreate it with:
+
+```json
+{
+  "agent": "the-architect"
+}
+```
+
+As of 2026-10-05, `the-architect` is read-only (no git access, no
+writing) until its updated blueprint is compiled by `construct`.
+
 ## Mac client: SPM instead of an Xcode project
 
 The Mac client uses Swift Package Manager, not a traditional
