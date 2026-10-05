@@ -48,10 +48,10 @@ Phases are not strictly sequential — a later phase can be further along
 than an earlier one if that's where the useful next step is.
 
 0. Architecture decision + harness structure — done
-1. Windows: screen capture (Desktop Duplication API — written, not yet
-   validated on the Acer: its first run failed and wasn't retried) +
-   H.264 encode via FFmpeg/NVENC (ADR 0003 — decided, not started),
-   both to be validated locally
+1. Windows: screen capture (Desktop Duplication API) + H.264 encode via
+   FFmpeg (ADR 0003), validated locally — **neither half works yet**.
+   Capture is being rebuilt from scratch and the encode has not been
+   started; both follow the seven steps in "Phase 1 plan" below
 2. Network: `libdatachannel`-based signaling + DataChannel, Mac ↔
    Windows — done (pieces 1-13), including automatic signaling and a
    real bidirectional transport wired into the UI. Reconfirmed
@@ -66,13 +66,80 @@ than an earlier one if that's where the useful next step is.
 7. Remote access outside the LAN — comes mostly for free from
    `libdatachannel`'s ICE/STUN/TURN; needs configuring/testing
 
+## Phase 1 plan: the staircase
+
+Decided 2026-10-05. This is the plan of record for Phase 1; an agent
+picking the work up with no other context should start here.
+
+**Three decisions behind it:**
+
+- **Capture is rebuilt from scratch.** `server-windows/src/capture_test.cpp`
+  is old, its only run on the Acer failed (the error was never recorded)
+  and nobody remembers its contents well enough to trust it. It is not
+  to be debugged, reused or copied from. It stays in the repository
+  untouched until the new capture works; what happens to it afterwards
+  is undecided.
+- **Work proceeds as a staircase.** Every step isolates exactly one
+  problem, has one visible sign of success, and its output is the
+  starting point of the next step — whether or not the steps strictly
+  depend on each other.
+- **Learning before speed**, as everywhere in this project: each step is
+  explained in plain terms before any code is written.
+
+**The steps** (all on the Windows server; the person runs every check on
+the Acer, since no agent can reach that machine):
+
+| # | Step | The one problem it isolates | Sign of success | Status |
+|---|---|---|---|---|
+| 1 | Talk to the graphics card | Can our program open Windows' graphics system (D3D11/DXGI) at all | It prints the Acer's graphics adapters and which one the monitor is attached to | research done, spec and code not started |
+| 2 | Capture one frame | Grabbing the screen once | A saved image shows the real screen | not started |
+| 3 | Capture continuously | Grabbing the screen for a few seconds | It prints the frames per second achieved | not started |
+| 4 | Choose the encoder | Which hardware encoder the Acer really has | One FFmpeg command on the Acer produces a video | not started |
+| 5 | Link FFmpeg into the project | The build finds FFmpeg and the `.exe` starts with its DLLs | A program of ours opens the chosen encoder without error | not started |
+| 6 | Encode synthetic frames | The encoder, with no capture involved | A video of changing colours plays in VLC | not started |
+| 7 | Join capture and encoder | Converting the screen's pixel format to the encoder's | Three seconds of the Acer's screen play in VLC | not started |
+
+Step 6 is not in ADR 0003, which goes straight from capture to
+capture-plus-encode. It was added so that if step 7 produces a bad
+video, the encoder is already known to work alone.
+
+Each step gets its own short spec in `docs/specs/` before any code,
+written by `programmer` and confirmed by the person.
+
+**Open questions, to be answered by the steps, not assumed:**
+
+- **Which adapter the screen is attached to** (step 1). The Acer has two
+  GPUs. `docs/research/2026-10-05-dxgi-adapters-hybrid-graphics.md`
+  found that Microsoft documents two constraints: the D3D11 device used
+  for capture must be created on the adapter the output is connected
+  to, and on a "hybrid" laptop the capture does not run against the
+  dedicated GPU. Whether this Acer is such a system is **not confirmed**
+  by any source — step 1's output is what answers it.
+- **What that means for the encoder** (step 4). If the screen is on the
+  Intel adapter, capturing there and encoding with NVENC on the NVIDIA
+  one means moving frames between adapters, and ADR 0003's
+  `H264Encoder` interface takes a single `ID3D11Device`. Intel Quick
+  Sync (`h264_qsv`) would sit on the same adapter as the capture.
+- **Whether the 940MX supports NVENC at all**, and **where an LGPL
+  FFmpeg build comes from** (step 4) — both unverified, see ADR 0003's
+  2026-10-05 update.
+- **How video travels over the network** — DataChannel or media track.
+  Not part of Phase 1; see ADR 0002's 2026-10-05 update.
+
 ## Repository structure
 
 - `client-macos/` — Swift Package Manager package (not a raw
-  `.xcodeproj` — see "Mac client: SPM instead of an Xcode project")
+  `.xcodeproj` — see "Mac client: SPM instead of an Xcode project").
+  Local settings live in `client-macos/.env` (gitignored; template in
+  `client-macos/.env.example`)
 - `server-windows/` — C/C++ code, built via CMake
 - `third_party/libdatachannel/` — vendored submodule (WebRTC via C++)
 - `docs/decisions/` — ADRs, one decision per file, numbered
+- `docs/research/` — findings checked against real sources, one dated
+  file per question, written by `researcher`
+- `docs/specs/` — one short spec per non-trivial piece of work, written
+  by `programmer` before the code (does not exist yet; the first one
+  will be Phase 1's step 1)
 - `docs/LEARNING_LOG.md` — logbook, one entry per work session
 - `docs/SETUP.md` — dependency checklist per platform, plus known dead
   ends (things tried and abandoned, documented so they aren't retried

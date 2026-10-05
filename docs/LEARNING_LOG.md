@@ -61,10 +61,65 @@ a firewall note in `docs/SETUP.md`.
   belongs in that project, not here. `FOUNDATION.md` stays tracked — it
   is the source.
 
-**Open before any encode code**, all recorded in ADR 0003's update:
-getting `capture_test` to run; confirming the 940MX supports NVENC;
-confirming where an LGPL FFmpeg build comes from. Further out: whether
-video travels over the DataChannel or a media track (ADR 0002's update).
+The `.env` change was tested the same day: the app bundle was rebuilt
+with `build-app-bundle.sh`, and Connect and Send Hello Mac worked with
+the address coming from `.env`. `AGENTS.md` was gitignored and
+untracked along with `CLAUDE.md`.
+
+**The plan for Phase 1 changed later in the session.** The first idea
+was to get the old `capture_test` running. That was dropped: the file
+is old and nobody trusts what is in it, so **capture is rebuilt from
+scratch**, and the whole of Phase 1 became a seven-step staircase —
+each step isolates one problem, shows one visible sign of success, and
+hands its output to the next. The steps, their status and the open
+questions are in `FOUNDATION.md` ("Phase 1 plan"); ADR 0003 has a note
+pointing there.
+
+**Step 1 got its research.** `researcher` checked two claims against
+Microsoft's documentation and saved them in
+`docs/research/2026-10-05-dxgi-adapters-hybrid-graphics.md`:
+
+- How to list graphics adapters and their outputs through DXGI, and
+  which fields tell the vendor, a software adapter, and whether an
+  output is attached to the desktop — confirmed.
+- On a laptop with hybrid graphics, the capture device must be created
+  on the adapter the output is connected to, and capture does not run
+  against the dedicated GPU. Documented by Microsoft, but **not
+  confirmed for this Acer**: that is what step 1's program will show.
+  It may also explain why the old `capture_test` failed, though the
+  error was never recorded, so that stays a guess.
+
+**What the session showed about working with the harness in Claude
+Code** (recorded in `FOUNDATION.md`, "Working sessions"):
+
+- A subagent (`@agent-<name>`) starts with none of the conversation and
+  returns one report through the session that called it. It can't
+  explain, ask and wait. `the-architect`'s answer to "where did the
+  project stop" was only as good as what was written in the repository
+  — which is why the records were corrected first.
+- `claude --agent <name>` opens the whole session as that agent. Tested
+  with `the-architect`: it came up with only its three read tools and
+  followed its blueprint. This project now opens as `the-architect` by
+  default (`.claude/settings.json`, local), with `claude --agent
+  programmer` for implementation.
+- `the-architect` could not see git, could not write a plan or an ADR
+  note, and could not invoke other agents — it returned ready-to-paste
+  messages for each agent instead, which turned out to be the most
+  useful part of its answer. Git access and permission to write
+  records (with approval) were requested as changes to its blueprint in
+  Free Wings.
+- A subagent called from a plan-mode session cannot write: `researcher`
+  finished its work and could not save its file until plan mode was
+  turned off.
+
+**Open before any encode code**, all in `FOUNDATION.md`'s "Phase 1
+plan": which adapter the screen is attached to (step 1); whether the
+940MX supports NVENC and where an LGPL FFmpeg build comes from
+(step 4). Further out: whether video travels over the DataChannel or a
+media track (ADR 0002's update).
+
+**Next**: `programmer` writes the spec for step 1 in `docs/specs/`,
+using the research above; the person confirms it before any code.
 
 ## 2026-10-02 — `construct` re-run: Claude Code bootstrap (recompile, second pass)
 

@@ -26,6 +26,22 @@
     `h264_qsv` (Intel Quick Sync, on the i5-7200U) behind the same
     `H264Encoder` interface — an amendment to this ADR, not a rewrite of
     the approach.
+  - **Decided later the same day — capture is rebuilt from scratch.**
+    `capture_test.cpp` will not be debugged or reused, so the first
+    bullet above ("capture has to run before `encode_test.cpp` can
+    reuse its setup") and the "Validation target" paragraph below
+    (which has `encode_test.cpp` duplicating `capture_test.cpp`'s
+    setup) no longer describe the plan. The plan of record is the
+    seven-step staircase in `FOUNDATION.md` ("Phase 1 plan"), which
+    also adds a step this ADR skips: encoding synthetic frames before
+    joining the encoder to the capture.
+  - **A third open point, from research done the same day**
+    (`docs/research/2026-10-05-dxgi-adapters-hybrid-graphics.md`): on a
+    laptop with hybrid graphics the screen may be captured on the Intel
+    adapter while NVENC runs on the NVIDIA one. The interface below
+    takes a single `ID3D11Device`, which assumes capture and encode
+    share an adapter. Not confirmed for this Acer; the staircase's
+    step 1 answers it, and step 4 decides what follows.
 
 ## Context
 

@@ -18,7 +18,9 @@
     actually works on the Acer Aspire — is **still pending**. No encoder
     has been run on that machine. Screen capture is in the same state:
     `capture_test.cpp` is written, but its first run on the Acer failed
-    and was never retried (work moved to networking instead).
+    and was never retried (work moved to networking instead). Capture
+    is being rebuilt from scratch rather than fixed — see "Phase 1
+    plan" in `FOUNDATION.md`.
 
 ## Context
 
