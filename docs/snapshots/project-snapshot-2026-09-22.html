@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Project Snapshot — 2026-09-22 — Shadow Glass</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f6f3ec; --panel: #ece4d3; --panel-line: #ddd2b8;
+    --ink: #1b2430; --ink-soft: #4a5468; --accent: #c9722c; --muted: #b9b0a0;
+    --win: #2a5db0; --docs: #2f7d5f; --config: #8a93a6;
+    --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    --sans: "IBM Plex Sans", -apple-system, "Segoe UI", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #11151c; --panel: #1a2029; --panel-line: #2a3240;
+      --ink: #e8e3d6; --ink-soft: #a7b0c2; --accent: #e79350; --muted: #4a5568;
+      --win: #6fa3e0; --docs: #5fbf95; --config: #8f98a8;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--sans); line-height: 1.6; }
+  .page { max-width: 800px; margin: 0 auto; padding: 48px 24px 96px; }
+  .kicker { font-family: var(--mono); font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); }
+  h1 { font-family: var(--mono); font-size: clamp(24px, 5vw, 34px); font-weight: 600; margin: 8px 0 4px; text-wrap: balance; }
+  .subtitle { font-family: var(--mono); font-size: 14px; color: var(--ink-soft); margin: 0 0 28px; }
+  .headline { font-size: 16px; font-weight: 500; background: var(--panel); border-left: 4px solid var(--accent); padding: 16px 20px; border-radius: 6px; margin: 0 0 36px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: 12.5px; margin: 0 0 24px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+
+  .tree { font-family: var(--mono); font-size: 13.5px; background: var(--panel); border: 1px solid var(--panel-line); border-radius: 10px; padding: 22px 24px; overflow-x: auto; }
+  .tree .line { white-space: pre; }
+  .tree .note { color: var(--ink-soft); font-family: var(--sans); font-style: italic; }
+  .tree .root { color: var(--ink); font-weight: 600; }
+  .tree .mac { color: var(--accent); font-weight: 600; }
+  .tree .win { color: var(--win); font-weight: 600; }
+  .tree .docs { color: var(--docs); font-weight: 600; }
+  .tree .config { color: var(--config); }
+  .tree .vendor { color: var(--muted); font-style: italic; }
+
+  section { margin: 40px 0; padding-top: 32px; border-top: 1px solid var(--panel-line); }
+  h2 { font-family: var(--mono); font-size: 17px; font-weight: 600; margin: 0 0 12px; }
+  p { max-width: 66ch; }
+  code { font-family: var(--mono); font-size: 0.9em; background: var(--panel); border: 1px solid var(--panel-line); border-radius: 4px; padding: 0.1em 0.35em; }
+
+  .stat-row { display: flex; flex-wrap: wrap; gap: 14px; margin: 16px 0; }
+  .stat { background: var(--panel); border: 1px solid var(--panel-line); border-radius: 8px; padding: 12px 16px; min-width: 120px; }
+  .stat .n { font-family: var(--mono); font-size: 22px; font-weight: 600; color: var(--accent); }
+  .stat .label { font-size: 12px; color: var(--ink-soft); }
+
+  table { width: 100%; border-collapse: collapse; font-size: 14px; margin: 8px 0; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--panel-line); vertical-align: top; }
+  th { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-soft); font-weight: 600; }
+  td.new { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="kicker">Project Snapshot — a dated record of a codebase's shape</div>
+  <h1>Shadow Glass</h1>
+  <p class="subtitle">2026-09-22 — Phase 2 re-verified end-to-end (firewall saga resolved), Free Wings harness now present, Phase 1 (FFmpeg/NVENC encode) still about to start</p>
+
+  <p class="headline">
+    Second of a series. Where the first snapshot (<a href="project-snapshot-2026-09-05.html">2026-09-05</a>)
+    was the "before" picture, this one records the shape of the project
+    after two things happened that didn't touch a single source file:
+    the Phase 2 network test was confirmed working end-to-end again
+    (after a long chase that ended at a Windows Firewall profile), and
+    the Free Wings harness arrived — <code>FOUNDATION.md</code> + <code>.opencode/</code>.
+    The source tree itself is almost unchanged; the world around it isn't.
+  </p>
+
+  <div class="stat-row">
+    <div class="stat"><div class="n">13</div><div class="label">connectivity pieces shipped</div></div>
+    <div class="stat"><div class="n">3</div><div class="label">ADRs accepted</div></div>
+    <div class="stat"><div class="n">2</div><div class="label">languages (Swift + C++)</div></div>
+    <div class="stat"><div class="n">3</div><div class="label">field-note pages</div></div>
+    <div class="stat"><div class="n">2</div><div class="label">dated snapshots</div></div>
+  </div>
+
+  <section style="border-top:none; margin-top:0; padding-top:0;">
+    <h2>The tree, as it stands today</h2>
+    <div class="legend">
+      <span><i class="dot" style="background:var(--config)"></i>Harness / config</span>
+      <span><i class="dot" style="background:var(--accent)"></i>Mac client (Swift)</span>
+      <span><i class="dot" style="background:var(--win)"></i>Windows server (C++)</span>
+      <span><i class="dot" style="background:var(--docs)"></i>Docs / decisions / log</span>
+      <span><i class="dot" style="background:var(--muted)"></i>Vendored (not ours)</span>
+    </div>
+    <div class="tree"><div class="line"><span class="root">shadow-glass/</span></div><div class="line">├── <span class="config">FOUNDATION.md</span>                    <span class="note">— source of truth: AGENTS.md/CLAUDE.md are compiled from it (Free Wings "construct")</span></div><div class="line">├── <span class="config">AGENTS.md</span> · <span class="config">CLAUDE.md</span>          <span class="note">— generated, not hand-edited</span></div><div class="line">├── <span class="config">.opencode/</span>                         <span class="note">— harness: agents (the-architect, programmer, …) + skills (loop-status, write-diary, …)</span></div><div class="line">├── <span class="config">.gitignore</span> · <span class="config">.gitmodules</span></div><div class="line">├── <span class="config">dev-shell.bat</span>                     <span class="note">— opens a Dev Command Prompt at repo root</span></div><div class="line">│</div><div class="line">├── <span class="mac">client-macos/</span>                       <span class="note">— Swift Package Manager, no .xcodeproj</span></div><div class="line">│   ├── <span class="mac">Package.swift</span></div><div class="line">│   ├── <span class="mac">build-app-bundle.sh</span>              <span class="note">— wraps swift build into a real .app (Local Network permission)</span></div><div class="line">│   └── <span class="mac">Sources/</span></div><div class="line">│       ├── <span class="mac">CLibDataChannel/</span>              <span class="note">— exposes libdatachannel's C header to Swift (shim.h + empty.c)</span></div><div class="line">│       └── <span class="mac">ShadowGlassClient/</span></div><div class="line">│           ├── ShadowGlassClientApp.swift  <span class="note">— SwiftUI shell + Connect / Send Hello Mac</span></div><div class="line">│           ├── Transport.swift             <span class="note">— LowLatencyTransport, our own protocol</span></div><div class="line">│           ├── LibDataChannelTransport.swift <span class="note">— the real transport (piece 13): BSD sockets + signaling</span></div><div class="line">│           └── Info.plist                  <span class="note">— embedded for Local Network permission</span></div><div class="line">│</div><div class="line">├── <span class="win">server-windows/</span>                     <span class="note">— C++, built via CMake</span></div><div class="line">│   ├── <span class="win">CMakeLists.txt</span> · <span class="win">build.bat</span> · <span class="win">README.md</span></div><div class="line">│   └── <span class="win">src/</span></div><div class="line">│       ├── <span class="win">capture_test.cpp</span>          <span class="note">— Phase 1: Desktop Duplication API (validated)</span></div><div class="line">│       ├── <span class="win">datachannel_offer_test.cpp</span> <span class="note">— piece 7: native PeerConnection</span></div><div class="line">│       └── <span class="win">signaling_test.cpp</span>        <span class="note">— pieces 10-11-13: real WebRTC answerer + DataChannel echo</span></div><div class="line">│</div><div class="line">├── <span class="docs">docs/</span></div><div class="line">│   ├── <span class="docs">LEARNING_LOG.md</span>               <span class="note">— one entry per session, chronological</span></div><div class="line">│   ├── <span class="docs">SETUP.md</span>                      <span class="note">— dependency checklist + known dead ends (OpenSSL; FFmpeg entry comes with Phase 1)</span></div><div class="line">│   ├── <span class="docs">protocol.md</span>                   <span class="note">— the signaling wire format (Mac ↔ Windows contract)</span></div><div class="line">│   ├── <span class="docs">where-things-run.html</span>         <span class="note">— field notes: what runs where (piece 4)</span></div><div class="line">│   ├── <span class="docs">anatomy-of-an-offer.html</span>      <span class="note">— field notes: SDP decoded line by line (piece 8)</span></div><div class="line">│   ├── <span class="docs">mac-vs-windows-networking.html</span> <span class="note">— field notes: the ARC/socket saga (pieces 12-13)</span></div><div class="line">│   ├── <span class="docs">decisions/</span></div><div class="line">│   │   ├── 0001-custom-transport-vs-rdp.md</div><div class="line">│   │   ├── 0002-libwebrtc-as-transport.md   <span class="note">— libdatachannel, permanent choice</span></div><div class="line">│   │   └── 0003-ffmpeg-nvenc-encode.md      <span class="note">— FFmpeg h264_nvenc behind our own H264Encoder</span></div><div class="line">│   └── <span class="docs">snapshots/</span>                    <span class="note">— dated records, one per milestone (this series)</span></div><div class="line">│       ├── <span class="docs">project-snapshot-2026-09-05.html</span></div><div class="line">│       └── <span class="docs">project-snapshot-2026-09-22.html</span></div><div class="line">│</div><div class="line">└── <span class="vendor">third_party/libdatachannel/</span>       <span class="note">— vendored submodule (v0.24.5), WebRTC via C++</span></div></div>
+  </section>
+
+  <section>
+    <h2>What changed since 2026-09-05</h2>
+    <p>Read side by side with the first snapshot, the two trees tell the story: <b>not a single source file changed</b> — but the project is in a different place.</p>
+    <table>
+      <tr><th>2026-09-05</th><th>2026-09-22</th><th>Meaning</th></tr>
+      <tr><td class="new" colspan="3">New in the tree</td></tr>
+      <tr><td>—</td><td class="new">FOUNDATION.md + .opencode/</td><td>Free Wings harness arrived: AGENTS.md/CLAUDE.md are now generated from FOUNDATION.md; agents and skills compiled into .opencode/.</td></tr>
+      <tr><td>CLibDataChannel (header only)</td><td class="new">+ empty.c</td><td>A placeholder C file so SwiftPM's C target has something to build — mechanical, not conceptual.</td></tr>
+      <tr><td>—</td><td class="new">docs/snapshots/</td><td>The snapshot series now lives in its own directory, one dated file per milestone.</td></tr>
+      <tr><td class="new" colspan="3">Same files, different state</td></tr>
+      <tr><td>Piece 13 just wired the real transport</td><td>transport (BSD sockets + signaling) verified</td><td>Phase 2 network test re-confirmed end-to-end: "Connect" → "Connected" → "Message from Mac: Hello Mac".</td></tr>
+      <tr><td>Hardcoded host 192.168.15.8</td><td>192.168.15.9 (working tree)</td><td>The Windows machine's DHCP lease moved; the literal in ShadowGlassClientApp.swift follows it.</td></tr>
+      <tr><td>Phase 1 ("encode") about to start</td><td>still about to start</td><td>ADR 0003 (FFmpeg h264_nvenc) accepted but H264Encoder/encode_test not implemented yet — the road ahead.</td></tr>
+    </table>
+    <p>
+      What the code section of the table hides: most of the real work in
+      this window happened <b>outside the repo</b> — a Windows Firewall
+      rule (port 45180), the OpenSSL installs on both machines, the
+      libdatachannel CMake build on the Mac, and the long debugging trail
+      those trips up. Those get captured in <code>docs/LEARNING_LOG.md</code>,
+      not in the tree.
+    </p>
+  </section>
+
+  <section>
+    <h2>What this snapshot doesn't show</h2>
+    <p>
+      On purpose: build output (<code>.build/</code>, <code>build/</code>,
+      <code>ShadowGlassClient.app</code> on the Mac), the vendored
+      library's own huge internal tree, and anything gitignored. The
+      point of a snapshot is the shape <em>we</em> authored, not what a
+      toolchain generates or a dependency brings along.
+    </p>
+  </section>
+
+  <section>
+    <h2>Where this fits</h2>
+    <p>
+      The first snapshot was taken the day the Free Wings journal project
+      was born — it is the "before" picture. This one is the "after" in
+      a small way: the harness is now present, Phase 2 is closed, and the
+      next milestone (Phase 1's encode piece) will be the subject of the
+      next one of these.
+    </p>
+  </section>
+</div>
+</body>
+</html>
