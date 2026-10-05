@@ -50,7 +50,8 @@ cp .env.example .env
 then set `WINDOWS_HOST` to the address `ipconfig` reports on the Windows
 machine. Without it the app still opens, but shows a warning and keeps
 **Connect** disabled. If the address changes later (it comes from the
-router's DHCP), edit `.env` and rebuild — no commit involved.
+router's DHCP), edit `.env` and reopen the app — the file is read at
+launch, so no rebuild and no commit are involved.
 
 ### Build
 
