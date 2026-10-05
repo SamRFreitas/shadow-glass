@@ -31,12 +31,12 @@ struct ContentView: View {
     // comment for why that specifically matters.
     private let transport: LowLatencyTransport = LibDataChannelTransport()
 
-    // Hardcoded for now — the Aspire's LAN IP, confirmed during piece 8.
-    // Fine to keep as a plain literal (see CLAUDE.md's "Security posture
-    // for connection details" — a private LAN address isn't reachable
-    // from outside this network, so publishing it isn't a risk). No
-    // discovery/config mechanism exists yet.
-    private let windowsHost = "192.168.15.8"
+    // The Aspire's LAN IP, read from the gitignored `client-macos/.env`
+    // (see LocalConfig.swift for why it stopped being a literal here).
+    // Optional because that file may not exist yet on a fresh clone —
+    // the view below says so instead of failing silently. No discovery
+    // mechanism exists yet; the address is still typed in by hand.
+    private let windowsHost = LocalConfig.windowsHost
 
     var body: some View {
         VStack(spacing: 16) {
@@ -44,10 +44,17 @@ struct ContentView: View {
                 .font(.title)
             Text(statusText)
                 .foregroundStyle(.secondary)
-            Button("Connect") {
-                transport.connect(to: windowsHost)
+            if windowsHost == nil {
+                Text("No WINDOWS_HOST set — copy client-macos/.env.example to .env")
+                    .foregroundStyle(.red)
+                    .multilineTextAlignment(.center)
             }
-            .disabled(status != .disconnected)
+            Button("Connect") {
+                if let windowsHost {
+                    transport.connect(to: windowsHost)
+                }
+            }
+            .disabled(status != .disconnected || windowsHost == nil)
             Button("Send Hello Mac") {
                 transport.send("Hello Mac")
             }
