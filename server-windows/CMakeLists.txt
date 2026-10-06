@@ -56,3 +56,11 @@ add_custom_command(TARGET signaling_test POST_BUILD
         $<TARGET_FILE:datachannel>
         $<TARGET_FILE_DIR:signaling_test>
 )
+
+# Phase 1 staircase, step 1 (docs/specs/phase-1-step-1-list-adapters.md):
+# list the graphics adapters and the outputs attached to each one. Links
+# dxgi only — no d3d11 — because this step asks Windows what exists and
+# creates no rendering device; that starts in step 2.
+add_executable(adapters_test src/adapters_test.cpp)
+target_link_libraries(adapters_test PRIVATE dxgi)
+set_property(TARGET adapters_test PROPERTY CXX_STANDARD 17)
