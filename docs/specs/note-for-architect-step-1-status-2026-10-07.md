@@ -8,7 +8,7 @@
 
 ## What the Acer reported
 
-Output of `adapters_test.exe` on 2026-10-07, commit `c1611a1`:
+Output of `adapters_test.exe` on 2026-10-07, commit `6986e21`:
 
     DXGI factory created.
     Adapter 0: Intel(R) HD Graphics 620
@@ -99,9 +99,11 @@ edit them.
   from the output loop on, the person writes the code first, in the
   editor, and `programmer` reviews the diff and points out problems
   without fixing them.
-- **Git identity.** Set on the Mac on 2026-10-07; older commits carry
-  two wrong emails. Plan in `note-todo-fix-commit-author-email.md`, to
-  be done after step 1.
+- **Git identity.** Set on the Mac on 2026-10-07. The older commits
+  carried two wrong emails; the history was rewritten and force-pushed
+  the same day, so every commit hash changed. Record in
+  `note-todo-fix-commit-author-email.md`. The Acer's clone needs
+  `git fetch` and `git reset --hard origin/main` before its next use.
 
 ## Other notes from this session, same folder
 

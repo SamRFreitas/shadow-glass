@@ -110,5 +110,5 @@ if (FAILED(hr)) {
 
 ## Where it ended up
 
-Committed as `02e0abb`, "feat(server-windows): list the outputs of each
+Committed as `79001aa`, "feat(server-windows): list the outputs of each
 adapter", in `server-windows/src/adapters_test.cpp`.
