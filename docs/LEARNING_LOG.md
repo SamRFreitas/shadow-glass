@@ -1,5 +1,260 @@
 # Logbook — Shadow Glass
 
+## 2026-10-06 — `construct` re-run: Claude Code bootstrap (recompile, eighth pass)
+
+Ran `@CONSTRUCT @HARI-SELDON` against this project from Free Wings at
+13:32 (-03), in **Claude Code**. The tool was detected from the runtime
+environment (`CLAUDECODE`, `CLAUDE_CODE_*` variables). Target:
+`/Users/samrfreitas/Lab/shadow-glass`. There was nothing to overwrite:
+neither `CLAUDE.md` nor `.claude/` existed in the working tree, although
+the seventh pass had generated both less than an hour earlier.
+
+Mode: **recompile**, from the current `FOUNDATION.md` (stamp `fc5a373e…`, after
+the one-word fix noted below), using
+`hangar/blueprints/adapters/claudecode.md`. Generated:
+
+- `CLAUDE.md`: compiled excerpt of `FOUNDATION.md`.
+- `.claude/agents/`: `the-architect`, `programmer`, `tester`, `deneir`,
+  `researcher` and `writer`.
+- `.claude/skills/<name>/SKILL.md`: `loop-status`, `write-diary` and
+  `write-article`.
+
+What this pass brings:
+
+- `CLAUDE.md` now opens with the stamp header: the fingerprint of the
+  `FOUNDATION.md` it was compiled from, and the instruction to compare
+  it once at the start of a session instead of reading both files.
+- The shared rules appended to each agent now begin with "Know the
+  project": work from `CLAUDE.md` when it is in context, and open
+  `FOUNDATION.md` only when it is not, when it is stale, or for the
+  full reasoning.
+- The consistency check found **no disagreement** between Free Wings'
+  `FOUNDATION.md` and its blueprints: six agents, three skills, same
+  names and roles.
+- No change in shape: `the-architect`, `programmer` and `tester` have no
+  `tools` field; the other three use the adapter's table verbatim.
+- As before, the compiled `programmer` drops the blueprint's mention of
+  another tool's file; the blueprint itself is unchanged.
+- The blueprints compiled from still carry uncommitted changes in the
+  Free Wings working tree.
+
+Closed in this same session: the person recreated
+`.claude/settings.json`, and this project's `FOUNDATION.md` now calls
+`construct` the bootstrapper instead of a "skill". That edit moved the
+stamp, so `CLAUDE.md` was restamped.
+
+Still open:
+
+- Same as before: a few harness-internal paths remain in the compiled
+  bodies (`docs/reading-list.md`, `hangar/blueprints/`) and resolve
+  against `~/Lab/free-wings/`.
+
+## 2026-10-06 — `construct` re-run: Claude Code bootstrap (recompile, seventh pass)
+
+Ran `@CONSTRUCT @HARI-SELDON` against this project from Free Wings at
+12:38 (-03), in **Claude Code**. The tool was detected from the runtime
+environment (`CLAUDECODE`, `CLAUDE_CODE_*` variables). Target:
+`/Users/samrfreitas/Lab/shadow-glass`. There was nothing to overwrite:
+neither `CLAUDE.md` nor `.claude/` existed in the working tree.
+
+Mode: **recompile**, from the current `FOUNDATION.md` (edited
+2026-10-06 11:52), using `hangar/blueprints/adapters/claudecode.md`.
+Generated:
+
+- `CLAUDE.md`: compiled excerpt of `FOUNDATION.md`.
+- `.claude/agents/`: `the-architect`, `programmer`, `tester`, `deneir`,
+  `researcher` and `writer`.
+- `.claude/skills/<name>/SKILL.md`: `loop-status`, `write-diary` and
+  `write-article`.
+
+What this pass brings:
+
+- The rules every agent follows ("recognize and refer", "show first,
+  then write") now come from one file,
+  `hangar/blueprints/shared/agent-rules.md`, appended to the end of each
+  of the six compiled agents instead of being repeated in each
+  blueprint.
+- `the-architect` no longer restates Foundation Sync: its compiled copy
+  points to the "Foundation Sync" section of Free Wings' `FOUNDATION.md`
+  and says the cascade runs here only if this project's own
+  `FOUNDATION.md` adopts it — which it has not.
+- The consistency check found **no disagreement** between Free Wings'
+  `FOUNDATION.md` and its blueprints: six agents, three skills, same
+  names and roles. The two named in the sixth pass are closed there.
+- No change in shape: `the-architect`, `programmer` and `tester` have no
+  `tools` field; the other three use the adapter's table verbatim.
+- The blueprints compiled from still carry uncommitted changes in the
+  Free Wings working tree, and `shared/` is untracked there.
+- As before, the compiled `programmer` drops the blueprint's mention of
+  another tool's file; the blueprint itself is unchanged.
+
+Still open:
+
+- **`.claude/settings.json` is missing**, so a plain `claude` here opens
+  neither as `the-architect` nor in plan mode until it is recreated (the
+  snippet is in `FOUNDATION.md`, "Working sessions"). `construct` does
+  not write that file.
+- This project's `FOUNDATION.md` still calls `construct` a "skill" in
+  its opening note; the harness defines it as the bootstrapper.
+- Same as before: a few harness-internal paths remain in the compiled
+  bodies (`docs/reading-list.md`, `hangar/blueprints/`) and resolve
+  against `~/Lab/free-wings/`.
+
+## 2026-10-06 — `construct` re-run: Claude Code bootstrap (recompile, sixth pass)
+
+Ran `@CONSTRUCT @HARI-SELDON` against this project from Free Wings at
+12:01 (-03), in **Claude Code**. The tool was detected from the runtime
+environment (`CLAUDECODE`, `CLAUDE_CODE_*` variables). Target:
+`/Users/samrfreitas/Lab/shadow-glass`. There was nothing to overwrite:
+neither `CLAUDE.md` nor `.claude/` existed in the working tree.
+
+Mode: **recompile**, from the current `FOUNDATION.md` (edited
+2026-10-06 11:52), using `hangar/blueprints/adapters/claudecode.md`.
+Generated:
+
+- `CLAUDE.md`: compiled excerpt of `FOUNDATION.md`.
+- `.claude/agents/`: `the-architect`, `programmer`, `tester`, `deneir`,
+  `researcher` and `writer`.
+- `.claude/skills/<name>/SKILL.md`: `loop-status`, `write-diary` and
+  `write-article`.
+
+What this pass brings:
+
+- `the-architect` is compiled from the blueprint that adds the three
+  rules protecting Foundation Sync and the "Version control and the
+  shell" section.
+- The open item from the fifth pass is closed: "Working sessions" in
+  `FOUNDATION.md` now agrees with the compiled `the-architect` (small
+  changes itself, delegation to `researcher`, `deneir` and `writer`),
+  and `CLAUDE.md` carries that paragraph.
+- No change in shape: `the-architect`, `programmer` and `tester` have no
+  `tools` field; the other three use the adapter's table verbatim.
+- All six agents are again compiled from blueprints that carry
+  uncommitted changes in the Free Wings working tree.
+- As before, the compiled copies of `the-architect` and `programmer`
+  drop the blueprints' mention of another tool's file; the blueprints
+  themselves are unchanged.
+
+Still open:
+
+- **`.claude/settings.json` is missing**, so a plain `claude` here opens
+  neither as `the-architect` nor in plan mode until it is recreated (the
+  snippet is in `FOUNDATION.md`, "Working sessions"). `construct` does
+  not write that file.
+- **Two disagreements between Free Wings' `FOUNDATION.md` and its
+  blueprints**, named by the new consistency check and left for
+  Foundation Sync there: the third rule protecting the cascade differs
+  (`FOUNDATION.md`: "`construct` checks before it compiles";
+  `the-architect`: "Adapters follow, they do not lead"), and `grilling`
+  is called a skill while no skill blueprint exists for it —
+  "Architecture Grilling" in this project's `FOUNDATION.md` is what
+  applies here.
+- This project's `FOUNDATION.md` still calls `construct` a "skill" in
+  its opening note; the harness defines it as the bootstrapper.
+- Same as before: a few harness-internal paths remain in the compiled
+  bodies (`docs/reading-list.md`, `hangar/blueprints/`) and resolve
+  against `~/Lab/free-wings/`.
+
+## 2026-10-05 — `construct` re-run: Claude Code bootstrap (recompile, fifth pass)
+
+Ran `@CONSTRUCT @HARI-SELDON` against this project from Free Wings at
+18:57 (-03), in **Claude Code**. The tool was detected from the runtime
+environment (`CLAUDECODE`, `CLAUDE_CODE_*` variables). Target:
+`/Users/samrfreitas/Lab/shadow-glass`. There was nothing to overwrite:
+neither `CLAUDE.md` nor `.claude/` existed in the working tree.
+
+Mode: **recompile**, from the current `FOUNDATION.md` (edited 18:55),
+using `hangar/blueprints/adapters/claudecode.md`. Generated:
+
+- `CLAUDE.md`: compiled excerpt of `FOUNDATION.md`.
+- `.claude/agents/`: `the-architect`, `programmer`, `tester`, `deneir`,
+  `researcher` and `writer`.
+- `.claude/skills/<name>/SKILL.md`: `loop-status`, `write-diary` and
+  `write-article`.
+
+What this pass brings:
+
+- `CLAUDE.md` follows the current "Working sessions" section of
+  `FOUNDATION.md`, including its closing paragraph on what
+  `the-architect` reads and writes.
+- No change in shape from the fourth pass: `the-architect`,
+  `programmer` and `tester` have no `tools` field; the other three use
+  the adapter's table verbatim.
+- All six agents are again compiled from blueprints that carry
+  uncommitted changes in the Free Wings working tree.
+- As before, the compiled copies of `the-architect` and `programmer`
+  drop the blueprints' mention of another tool's file; the blueprints
+  themselves are unchanged.
+
+Still open:
+
+- **`.claude/settings.json` is missing**, so a plain `claude` here opens
+  neither as `the-architect` nor in plan mode until it is recreated (the
+  snippet is in `FOUNDATION.md`, "Working sessions"). `construct` does
+  not write that file.
+- **One sentence in `FOUNDATION.md`, "Working sessions", still differs
+  from the compiled `the-architect`**: "It still does not write code or
+  invoke other agents." The blueprint allows a small change, shown and
+  approved, and delegation to `researcher`, `deneir` and `writer`.
+  `CLAUDE.md` leaves that sentence out rather than repeat either side;
+  `FOUNDATION.md` was not touched — that correction is the person's to
+  make.
+- Same as before: a few harness-internal paths remain in the compiled
+  bodies (`docs/reading-list.md`, `hangar/blueprints/`) and resolve
+  against `~/Lab/free-wings/`; `programmer` refers to a `grilling` skill
+  that has no blueprint — "Architecture Grilling" in `FOUNDATION.md` is
+  what applies here.
+
+## 2026-10-05 — `construct` re-run: Claude Code bootstrap (recompile, fourth pass)
+
+Ran `@CONSTRUCT @HARI-SELDON` against this project from Free Wings at
+18:33 (-03), in **Claude Code**. The tool was detected from the runtime
+environment (`CLAUDECODE`, `CLAUDE_CODE_*` variables). Target:
+`/Users/samrfreitas/Lab/shadow-glass`. There was nothing to overwrite:
+neither `CLAUDE.md` nor any file under `.claude/` existed in the working
+tree.
+
+Mode: **recompile**, from the current `FOUNDATION.md`, using
+`hangar/blueprints/adapters/claudecode.md`. Generated:
+
+- `CLAUDE.md`: compiled excerpt of `FOUNDATION.md`.
+- `.claude/agents/`: `the-architect`, `programmer`, `tester`, `deneir`,
+  `researcher` and `writer`.
+- `.claude/skills/<name>/SKILL.md`: `loop-status`, `write-diary` and
+  `write-article`.
+
+What this pass brings:
+
+- **`the-architect` no longer has a `tools` field.** The adapter's table
+  now says to omit it, so the agent inherits every tool, as `programmer`
+  and `tester` do. What it may write, and when, is set by the
+  blueprint's "Write permissions" section instead of a tool list.
+- All six agents are compiled from blueprints that carry uncommitted
+  changes in the Free Wings working tree at the time of this run.
+- As before, the compiled copies of `the-architect` and `programmer`
+  drop the blueprints' mention of another tool's file; the blueprints
+  themselves are unchanged.
+
+Still open:
+
+- **`.claude/settings.json` is missing**, so a plain `claude` here does
+  not open as `the-architect` until it is recreated (the snippet is in
+  `FOUNDATION.md`, "Working sessions"). `construct` does not write that
+  file.
+- **Two sentences in `FOUNDATION.md`, "Working sessions", no longer
+  match the compiled `the-architect`.** "It has no tools to write a plan
+  file" was true of a restricted tool list; the agent now inherits all
+  tools. "It still does not write code" predates the blueprint's
+  allowance for a small change, shown and approved. `CLAUDE.md` keeps
+  the plan-mode rule without the first reason and otherwise follows
+  `FOUNDATION.md`; the file itself was not touched — that correction is
+  the person's to make.
+- Same as before: a few harness-internal paths remain in the compiled
+  bodies (`docs/reading-list.md`, `hangar/blueprints/agents/writer.md`)
+  and resolve against `~/Lab/free-wings/`; `programmer` refers to a
+  `grilling` skill that has no blueprint — "Architecture Grilling" in
+  `FOUNDATION.md` is what applies here.
+
 ## 2026-10-05 — `construct` re-run: Claude Code bootstrap (recompile, third pass)
 
 Ran `@CONSTRUCT @HARI-SELDON` against this project from Free Wings at

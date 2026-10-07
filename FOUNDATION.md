@@ -4,9 +4,9 @@
 
 > The source. Not read automatically by any AI tool — compiled into
 > whatever each tool actually needs (`CLAUDE.md`, `AGENTS.md`) by the
-> `construct` skill, part of the **Free Wings** (*Asas Livres*) harness
-> this project sits under (`~/Lab/free-wings/`). Edit this file, not the
-> generated ones.
+> `construct` bootstrapper, part of the **Free Wings** (*Asas Livres*)
+> harness this project sits under (`~/Lab/free-wings/`). Edit this file,
+> not the generated ones.
 
 > "The glass that mirrors the other side."
 
@@ -179,26 +179,38 @@ Two things to keep in mind:
   next is either a message copied over by hand or something written to
   the repository. A decision that only exists in a conversation is lost
   to the next agent.
-- **Keep plan mode off in `the-architect` sessions.** It has no tools to
-  write a plan file, and subagents called from a plan-mode session can't
-  write their output either.
+- **Sessions open in plan mode by default** (set 2026-10-05). This
+  applies to every session opened in this repository, including
+  `claude --agent programmer` and `claude --agent tester`. Leave it with
+  Shift+Tab, or open the session with `--permission-mode default`.
+- **A simple question gets a short, direct answer**, in plan mode or
+  not. A plan is written only when there is work to be done, and it
+  covers that work alone.
+- **Leave plan mode before calling `researcher`, `deneir` or `writer`.**
+  A subagent called from a plan-mode session could not write its output
+  when this was observed on 2026-10-05; it has not been re-tested since.
 
-The default lives in `.claude/settings.json`, which sits inside the
+Both defaults live in `.claude/settings.json`, which sits inside the
 gitignored `.claude/` folder and is therefore local to each machine. If
 it goes missing, recreate it with:
 
 ```json
 {
-  "agent": "the-architect"
+  "agent": "the-architect",
+  "permissions": {
+    "defaultMode": "plan"
+  }
 }
 ```
 
 As of 2026-10-05, `the-architect` is compiled from its updated
-blueprint: it can read the repository's history (git, read-only) and
-write the records of its own decisions — `docs/decisions/`,
-`docs/specs/plan-*.md` and this file — each write only after the person
-approves the exact text. It still does not write code or invoke other
-agents.
+blueprint. It reads the repository's history and uses the shell as any
+session does. It writes the records of its own decisions —
+`docs/decisions/`, `docs/specs/plan-*.md` and this file — and can make a
+small change to code or configuration itself. It can delegate to
+`researcher`, `deneir` and `writer`. Every write happens only after the
+person approves the exact text; larger implementation goes to
+`programmer`.
 
 ## Mac client: SPM instead of an Xcode project
 
