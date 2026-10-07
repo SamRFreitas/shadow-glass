@@ -10,7 +10,7 @@
 //
 // Windows only hands these objects out through a chain:
 //   factory -> adapter -> output
-// So far: the factory, and the name of every adapter it hands out.
+// So far: the name of every adapter, and how many outputs each one has.
 //
 // Every object received from Windows is given back by hand with Release().
 // That is a deliberate choice for learning (see the spec); nothing here
@@ -78,6 +78,33 @@ int main() {
         }
 
         printf("Adapter %u: %ls\n", i, desc.Description);
+
+        // Same shape as the adapter loop, one link further down the
+        // chain: each adapter is asked for its outputs (screens) until
+        // it answers that there is no output with that number. An
+        // adapter with no screen attached ends this loop on its first
+        // turn, which is normal.
+        for (UINT j = 0; ; j++) {
+            IDXGIOutput* output = nullptr;
+            hr = adapter->EnumOutputs(j, &output);
+
+            if (hr == DXGI_ERROR_NOT_FOUND) {
+                break;
+            }
+            if (FAILED(hr)) {
+                // return leaves main at once, skipping the releases
+                // further down, so this exit gives back everything held:
+                // the adapter and the factory. The output never arrived.
+                printf("EnumOutputs(%u) failed: 0x%08lX\n", j, hr);
+                adapter->Release();
+                factory->Release();
+                return 1;
+            }
+
+            printf("    Output %u found.\n", j);
+
+            output->Release();
+        }
 
         // Each turn receives one adapter and gives it back before the
         // next turn asks for another.
