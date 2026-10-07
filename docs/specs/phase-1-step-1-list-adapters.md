@@ -1,7 +1,8 @@
 # Phase 1, step 1 — List graphics adapters and their outputs
 
 - Date: 2026-10-06
-- Status: confirmed, not implemented
+- Status: in progress — see
+  `note-for-architect-step-1-status-2026-10-07.md`
 - Staircase: step 1 of 7 (`FOUNDATION.md`, "Phase 1 plan")
 - Grounded in: `docs/research/2026-10-05-dxgi-adapters-hybrid-graphics.md`
 
