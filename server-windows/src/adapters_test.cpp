@@ -10,7 +10,7 @@
 //
 // Windows only hands these objects out through a chain:
 //   factory -> adapter -> output
-// Piece 1 of 4: only the first link, the factory.
+// So far: the factory, and one adapter (number 0) taken from it.
 //
 // Every object received from Windows is given back by hand with Release().
 // That is a deliberate choice for learning (see the spec); nothing here
@@ -39,6 +39,23 @@ int main() {
     }
 
     printf("DXGI factory created.\n");
+
+    // Same gesture as above, one link further down the chain: an empty
+    // pointer, its address handed over, the answer in hr. This time we
+    // ask the factory instead of Windows, and the 0 says which adapter.
+    IDXGIAdapter1* adapter = nullptr;
+    hr = factory->EnumAdapters1(0, &adapter);
+    if (FAILED(hr)) {
+        // The adapter was not received, so only the factory goes back.
+        printf("EnumAdapters1 failed: 0x%08lX\n", hr);
+        factory->Release();
+        return 1;
+    }
+
+    printf("Adapter 0 found.\n");
+
+    // Give back in the reverse order we received.
+    adapter->Release();
 
     // We received a factory, so we give it back.
     factory->Release();
