@@ -10,7 +10,7 @@
 //
 // Windows only hands these objects out through a chain:
 //   factory -> adapter -> output
-// So far: the factory, adapter number 0 taken from it, and its name.
+// So far: the factory, and the name of every adapter it hands out.
 //
 // Every object received from Windows is given back by hand with Release().
 // That is a deliberate choice for learning (see the spec); nothing here
@@ -40,39 +40,49 @@ int main() {
 
     printf("DXGI factory created.\n");
 
-    // Same gesture as above, one link further down the chain: an empty
-    // pointer, its address handed over, the answer in hr. This time we
-    // ask the factory instead of Windows, and the 0 says which adapter.
-    IDXGIAdapter1* adapter = nullptr;
-    hr = factory->EnumAdapters1(0, &adapter);
-    if (FAILED(hr)) {
-        // The adapter was not received, so only the factory goes back.
-        printf("EnumAdapters1 failed: 0x%08lX\n", hr);
-        factory->Release();
-        return 1;
-    }
+    // We do not know how many adapters there are, so the loop has no
+    // limit of its own: it asks for number 0, 1, 2... and leaves when
+    // Windows answers that there is no adapter with that number.
+    for (UINT i = 0; ; i++) {
+        // Same gesture as for the factory, one link further down the
+        // chain: an empty pointer, its address handed over, the answer
+        // in hr. Here we ask the factory, and i says which adapter.
+        IDXGIAdapter1* adapter = nullptr;
+        hr = factory->EnumAdapters1(i, &adapter);
 
-    printf("Adapter 0 found.\n");
+        // This must be tested before FAILED: NOT_FOUND is a negative
+        // code too, but it is the normal end of the list, not an error.
+        if (hr == DXGI_ERROR_NOT_FOUND) {
+            break;
+        }
+        if (FAILED(hr)) {
+            // The adapter was not received, so only the factory goes back.
+            printf("EnumAdapters1(%u) failed: 0x%08lX\n", i, hr);
+            factory->Release();
+            return 1;
+        }
 
-    // A description is plain data, not an object borrowed from Windows:
-    // this struct is ours, Windows copies the adapter's details into it,
-    // and it needs no Release(). The & is there for the same reason as
-    // before — so the function can write into a variable that lives here.
-    DXGI_ADAPTER_DESC1 desc;
-    hr = adapter->GetDesc1(&desc);
-    if (FAILED(hr)) {
-        // Both pointers were received by now, so both go back, last
-        // received first.
-        printf("GetDesc1 failed: 0x%08lX\n", hr);
+        // A description is plain data, not an object borrowed from
+        // Windows: this struct is ours, Windows copies the adapter's
+        // details into it, and it needs no Release(). The & is there so
+        // the function can write into a variable that lives here.
+        DXGI_ADAPTER_DESC1 desc;
+        hr = adapter->GetDesc1(&desc);
+        if (FAILED(hr)) {
+            // Both pointers were received by now, so both go back, last
+            // received first.
+            printf("GetDesc1 failed: 0x%08lX\n", hr);
+            adapter->Release();
+            factory->Release();
+            return 1;
+        }
+
+        printf("Adapter %u: %ls\n", i, desc.Description);
+
+        // Each turn receives one adapter and gives it back before the
+        // next turn asks for another.
         adapter->Release();
-        factory->Release();
-        return 1;
     }
-
-    printf("Adapter 0: %ls\n", desc.Description);
-
-    // Give back in the reverse order we received.
-    adapter->Release();
 
     // We received a factory, so we give it back.
     factory->Release();
