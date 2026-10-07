@@ -91,6 +91,7 @@ int main() {
             if (hr == DXGI_ERROR_NOT_FOUND) {
                 break;
             }
+
             if (FAILED(hr)) {
                 // return leaves main at once, skipping the releases
                 // further down, so this exit gives back everything held:
@@ -101,7 +102,26 @@ int main() {
                 return 1;
             }
 
-            printf("    Output %u found.\n", j);
+            // Same idea as the adapter's description: a struct of ours
+            // that Windows fills in with this output's details. It is
+            // plain data, so it needs no Release().
+            DXGI_OUTPUT_DESC outputDesc;
+            hr = output->GetDesc(&outputDesc);
+
+            if(FAILED(hr)) {
+
+                // Three pointers are held by now — unlike the exit just
+                // above, the output did arrive — so all three go back,
+                // last received first.
+                printf("Output GetDesc failed: 0x%08lX\n", hr);
+                output->Release();
+                adapter->Release();
+                factory->Release();
+                return 1;
+
+            }
+
+            printf("Output %u:  %ls\n", j, outputDesc.DeviceName);
 
             output->Release();
         }
