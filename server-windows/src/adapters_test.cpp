@@ -120,8 +120,11 @@ int main() {
                 return 1;
 
             }
+            
+            LONG width = outputDesc.DesktopCoordinates.right - outputDesc.DesktopCoordinates.left;
+            LONG height = outputDesc.DesktopCoordinates.bottom - outputDesc.DesktopCoordinates.top;
 
-            printf("Output %u:  %ls\n", j, outputDesc.DeviceName);
+            printf("    Output %u:  %ls, attached to desktop: %s, %ldx%ld \n", j, outputDesc.DeviceName, outputDesc.AttachedToDesktop ? "yes" : "no", width, height);
 
             output->Release();
         }
