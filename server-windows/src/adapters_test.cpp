@@ -16,11 +16,24 @@
 // That is a deliberate choice for learning (see the spec); nothing here
 // does it automatically.
 
+#include <windows.h>
+
 #include <dxgi.h>     // declares CreateDXGIFactory1 and the IDXGI* types
 
 #include <cstdio>     // printf
 
-int main() {
+
+
+int main(int argc, char* argv[]) {
+
+    if(argc > 1) {
+        printf("DPI awareness: OFF \n");
+    } else {
+        SetProcessDPIAware();
+        printf("DPI awareness: ON \n");
+    }
+
+    
     // Empty for now; Windows fills it in below.
     IDXGIFactory1* factory = nullptr;
 
