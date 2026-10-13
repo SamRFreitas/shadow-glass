@@ -26,6 +26,17 @@
 
 int main(int argc, char* argv[]) {
 
+    // DPI awareness is a switch for the whole process. On: Windows
+    // reports real (physical) pixel sizes. Off: when the display scale is
+    // above 100%, Windows reports a smaller, "logical" screen size — and
+    // screen capture works in physical pixels, so this program wants it
+    // on. It comes first because it only affects what is asked afterwards.
+    //
+    // Running with any extra word (adapters_test.exe unaware) leaves the
+    // switch off, so the difference can be seen. Observed on the Acer at
+    // 125% scale: 1366x768 with it on, 1093x614 with it off. argv is
+    // declared because main's two parameters come as a pair; only argc
+    // is used.
     if(argc > 1) {
         printf("DPI awareness: OFF \n");
     } else {
