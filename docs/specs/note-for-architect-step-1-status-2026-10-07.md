@@ -119,3 +119,30 @@ The factory, the adapter loop and the first version of the output loop's
 error handling were written by `programmer` and read line by line by the
 person. The output loop itself, the output description, and the desktop
 attachment and size lines were written by the person and reviewed.
+
+## Update — 2026-10-13
+
+**DPI awareness: done and verified on the Acer.** Item 1 of "What
+remains in step 1" is closed. With the display scale at 125%,
+`adapters_test.exe` reported 1366x768 with DPI awareness on and
+1093x614 with it off; at 100% it reported 1366x768.
+
+- **For step 2:** the capture program must declare DPI awareness before
+  asking Windows for any size. Without it, at any scale above 100%, it
+  is told a logical size smaller than the frames it will receive. This
+  is now a measured fact on this machine, not only a documented one.
+- **Departure from the spec:** the spec says the program "marks the
+  process DPI aware". It now does so by default and skips it when run
+  with any extra word (`adapters_test.exe unaware`), so the two sizes
+  can be compared. That switch exists for the experiment, not as a
+  feature.
+- **For the teaching approach:** the experiment was the person's idea,
+  after the assistant had recommended not testing the line at all. It
+  verified a claim and exposed a wrong conclusion the assistant had
+  drawn from a comparison that changed two things at once. Worth
+  keeping as a working rule: when the person proposes going beyond the
+  exercise, treat it as a better plan, not as a detour.
+- Details in `note-learning-2026-10-13-pixels-dpi-and-an-experiment.md`.
+
+Still remaining in step 1: the summary line (item 2), the vendor and
+software-flag details (item 3), and the housekeeping (item 4).
