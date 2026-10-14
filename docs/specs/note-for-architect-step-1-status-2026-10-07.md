@@ -174,5 +174,17 @@ is correct. The person chose to keep it working for the Acer only
 while the goal is getting things to run; it should be revisited before
 anything relies on it on a machine with more than one monitor.
 
+**For later: the secure desktop.** Windows also uses "desktop" for an
+internal object: a separate space where windows live. Besides the
+normal one there is a "secure desktop", shown at the login screen and
+for UAC permission prompts. From the assistant's memory, **not checked
+against any source**: a normal program loses the ability to capture
+the screen and to inject keyboard and mouse input while the secure
+desktop is shown. For a remote access tool that could freeze the image
+on the Mac, or leave the person unable to answer a UAC prompt remotely.
+Worth a `researcher` question before it matters — around step 3
+(continuous capture) or Phase 4 (input). Vocabulary in
+`note-vocabulary-2026-10-14-desktop.md`.
+
 Still remaining in step 1: the vendor and software-flag details
 (item 3) and the housekeeping (item 4).
