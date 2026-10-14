@@ -186,5 +186,29 @@ Worth a `researcher` question before it matters — around step 3
 (continuous capture) or Phase 4 (input). Vocabulary in
 `note-vocabulary-2026-10-14-desktop.md`.
 
-Still remaining in step 1: the vendor and software-flag details
-(item 3) and the housekeeping (item 4).
+**Item 3, part 1 — vendor and device IDs: done and checked.** Output
+at commit `c66f721`:
+
+    Adapter 0: Intel(R) HD Graphics 620, vendor: 0x8086, device: 0x5916
+    Adapter 1: NVIDIA GeForce 940MX, vendor: 0x10DE, device: 0x134D
+    Adapter 2: Microsoft Basic Render Driver, vendor: 0x1414, device: 0x008C
+
+The person checked both cards against Device Manager's hardware IDs
+(`PCI\VEN_8086&DEV_5916...` and `PCI\VEN_10DE&DEV_134D...`); they
+match. Details in `note-learning-2026-10-14-hex-and-hardware-ids.md`.
+
+**Questions for `researcher`**, none urgent, all from the assistant's
+memory and unverified:
+
+1. **PCI class codes.** Device Manager shows `CC_0300` for the Intel
+   and `CC_0302` for the NVIDIA. Believed: `0300` is a VGA-compatible
+   display controller, `0302` a 3D controller with no display output.
+   If confirmed, it is a second, independent source agreeing with
+   step 1 that the 940MX drives no screen.
+2. **`SUBSYS_...1025`.** Believed to be Acer's PCI vendor ID.
+3. **The secure desktop**, described above — the one that matters for
+   the project; the first two only confirm what is already known.
+
+Still remaining in step 1: item 3 part 2 (a name for each vendor ID),
+item 3 part 3 (the software-adapter flag), and the housekeeping
+(item 4).
