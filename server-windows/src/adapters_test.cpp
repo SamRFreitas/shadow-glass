@@ -64,6 +64,8 @@ int main(int argc, char* argv[]) {
 
     printf("DXGI factory created.\n");
 
+    int desktopAdapter = -1;
+
     // We do not know how many adapters there are, so the loop has no
     // limit of its own: it asks for number 0, 1, 2... and leaves when
     // Windows answers that there is no adapter with that number.
@@ -145,6 +147,10 @@ int main(int argc, char* argv[]) {
 
             }
             
+            if(outputDesc.AttachedToDesktop) {
+                desktopAdapter = i;
+            }
+            
             LONG width = outputDesc.DesktopCoordinates.right - outputDesc.DesktopCoordinates.left;
             LONG height = outputDesc.DesktopCoordinates.bottom - outputDesc.DesktopCoordinates.top;
 
@@ -160,5 +166,12 @@ int main(int argc, char* argv[]) {
 
     // We received a factory, so we give it back.
     factory->Release();
+
+    if(desktopAdapter < 0) {
+        printf("No output attached to the desktop was found. \n");
+    } else {
+        printf("Desktop output is on adapter %d. \n", desktopAdapter);
+    }
+
     return 0;
 }
