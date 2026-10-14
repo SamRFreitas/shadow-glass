@@ -103,7 +103,7 @@ int main(int argc, char* argv[]) {
             return 1;
         }
 
-        printf("Adapter %u: %ls\n", i, desc.Description);
+        printf("Adapter %u: %ls, vendor: 0x%04X, device: 0x%04X\n", i, desc.Description, desc.VendorId, desc.DeviceId);
 
         // Same shape as the adapter loop, one link further down the
         // chain: each adapter is asked for its outputs (screens) until
