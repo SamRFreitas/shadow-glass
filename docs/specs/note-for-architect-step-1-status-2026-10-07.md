@@ -146,3 +146,33 @@ remains in step 1" is closed. With the display scale at 125%,
 
 Still remaining in step 1: the summary line (item 2), the vendor and
 software-flag details (item 3), and the housekeeping (item 4).
+
+## Update — 2026-10-14
+
+**Summary line: done and run on the Acer.** Item 2 of "What remains in
+step 1" is closed. Output at commit `40838a1`:
+
+    DPI awareness: ON
+    DXGI factory created.
+    Adapter 0: Intel(R) HD Graphics 620
+        Output 0:  \\.\DISPLAY1, attached to desktop: yes, 1366x768
+    Adapter 1: NVIDIA GeForce 940MX
+    Adapter 2: Microsoft Basic Render Driver
+    Desktop output is on adapter 0.
+
+    Exit code: 0
+
+The person wrote this piece; `programmer` reviewed the diff and pointed
+out problems without fixing them.
+
+**Known limit, accepted for now.** `adapters_test.cpp` keeps the
+adapter that owns the desktop in a single variable,
+`int desktopAdapter` (-1 until one is found). If outputs on two
+different adapters are both attached to the desktop, it reports only
+the last one found. The Acer has a single output, so its answer there
+is correct. The person chose to keep it working for the Acer only
+while the goal is getting things to run; it should be revisited before
+anything relies on it on a machine with more than one monitor.
+
+Still remaining in step 1: the vendor and software-flag details
+(item 3) and the housekeeping (item 4).
