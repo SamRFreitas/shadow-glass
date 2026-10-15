@@ -103,7 +103,23 @@ int main(int argc, char* argv[]) {
             return 1;
         }
 
-        printf("Adapter %u: %ls, vendor: 0x%04X, device: 0x%04X\n", i, desc.Description, desc.VendorId, desc.DeviceId);
+        const char* vendorName;
+
+        switch(desc.VendorId) {
+            case 0x8086: 
+                vendorName = "Intel";
+                break;
+            case 0x10DE: 
+                vendorName = "NVIDIA";
+                break;
+            case 0x1414: 
+                vendorName = "Microsoft";
+                break;
+            default: 
+                vendorName = "unknown";
+        }
+
+        printf("Adapter %u: %ls, vendor: 0x%04X (%s), device: 0x%04X\n", i, desc.Description, desc.VendorId, vendorName, desc.DeviceId);
 
         // Same shape as the adapter loop, one link further down the
         // chain: each adapter is asked for its outputs (screens) until
