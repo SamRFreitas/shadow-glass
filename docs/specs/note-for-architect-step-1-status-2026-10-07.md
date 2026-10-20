@@ -212,3 +212,32 @@ memory and unverified:
 Still remaining in step 1: item 3 part 2 (a name for each vendor ID),
 item 3 part 3 (the software-adapter flag), and the housekeeping
 (item 4).
+
+## Update — 2026-10-20: step 1 done
+
+Items 3 and 4 of "What remains in step 1" are closed; step 1 is done.
+Output at commit `e3a0604`:
+
+    DPI awareness: ON
+    DXGI factory created.
+    Adapter 0: Intel(R) HD Graphics 620, vendor: 0x8086 (Intel), device: 0x5916, software: no
+        Output 0:  \\.\DISPLAY1, attached to desktop: yes, 1366x768
+    Adapter 1: NVIDIA GeForce 940MX, vendor: 0x10DE (NVIDIA), device: 0x134D, software: no
+    Adapter 2: Microsoft Basic Render Driver, vendor: 0x1414 (Microsoft), device: 0x008C, software: yes
+    Desktop output is on adapter 0.
+
+    Exit code: 0
+
+- **Vendor names** come from a `switch` on `VendorId`; any other value
+  prints `unknown`. That branch has not run on the Acer, which has only
+  the three known vendors.
+- **The software adapter** is detected by `DXGI_ADAPTER_FLAG_SOFTWARE`,
+  as the spec decided, not by its name. On the Acer only the Microsoft
+  Basic Render Driver has it.
+- The person wrote every piece of item 3. The bit-flag idea took two
+  sessions and was taught from scratch: binary, then flags, then `&`.
+- `server-windows/README.md` now lists `adapters_test` and
+  `build-target.bat`; the spec's status says done.
+
+For the project's records: the staircase table in `FOUNDATION.md` still
+shows step 1 as "research done, spec and code not started".

@@ -10,7 +10,8 @@
 //
 // Windows only hands these objects out through a chain:
 //   factory -> adapter -> output
-// So far: the name of every adapter, and how many outputs each one has.
+// It prints every adapter (name, vendor, device, whether it is a software
+// one), the outputs under each, and which adapter holds the desktop.
 //
 // Every object received from Windows is given back by hand with Release().
 // That is a deliberate choice for learning (see the spec); nothing here

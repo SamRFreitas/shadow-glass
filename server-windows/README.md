@@ -24,6 +24,16 @@ build signaling_test
 
 Executables land in `build\Debug\`.
 
+To build and run **one** target only, so that an error in an unrelated
+target cannot get in the way:
+
+```
+build-target adapters_test
+```
+
+This is `build-target.bat`: it configures, builds that target alone and
+runs it, printing each stage and the exit code.
+
 `docs/SETUP.md` lists what must be installed first (Visual Studio with
 the C++ workload, OpenSSL) and the firewall setting the network test
 needs. Visual Studio's MSVC is the only toolchain this has been built
@@ -36,6 +46,7 @@ instructions were removed from this file.
 |---|---|---|
 | `signaling_test` | The Windows end of the Mac ↔ Windows connection: listens on TCP port 45180, answers the Mac's offer and receives DataChannel messages (`docs/protocol.md`) | Working — re-tested 2026-10-05 |
 | `datachannel_offer_test` | That `libdatachannel` builds and links into our own project on Windows | Worked when written (piece 7); not re-run since |
+| `adapters_test` | Phase 1, step 1: lists the graphics adapters, the outputs under each, and which adapter holds the desktop (`docs/specs/phase-1-step-1-list-adapters.md`) | Working — run on the Acer 2026-10-20 |
 | `capture_test` | An early attempt at screen capture | **Never validated — do not use** (see below) |
 
 ### Running `signaling_test`
