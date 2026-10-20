@@ -1,8 +1,8 @@
 # Phase 1, step 1 — List graphics adapters and their outputs
 
 - Date: 2026-10-06
-- Status: done 2026-10-20 — see
-  `docs/notes/programmer/for-the-architect-2026-10-07-step-1-status.md`
+- Status: done 2026-10-20 — see `docs/LEARNING_LOG.md`, entry
+  "Phase 1, step 1"
 - Staircase: step 1 of 7 (`FOUNDATION.md`, "Phase 1 plan")
 - Grounded in: `docs/research/2026-10-05-dxgi-adapters-hybrid-graphics.md`
 

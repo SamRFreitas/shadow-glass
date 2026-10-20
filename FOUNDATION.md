@@ -120,8 +120,8 @@ written by `programmer` and confirmed by the person.
   adapter, found by the output it owns, never by its index; and the
   process declares DPI awareness before asking for any size (at 125%
   scale, a process without it was told 1093x614 instead of 1366x768,
-  measured 2026-10-13). Details in
-  `docs/notes/programmer/for-the-architect-2026-10-07-step-1-status.md`.
+  measured 2026-10-13). Details in `docs/LEARNING_LOG.md`, entry
+  "Phase 1, step 1".
 - **What that means for the encoder** (step 4). The screen is on the
   Intel adapter, so capturing there and encoding with NVENC on the NVIDIA
   one means moving frames between adapters, and ADR 0003's
