@@ -99,11 +99,6 @@ edit them.
   from the output loop on, the person writes the code first, in the
   editor, and `programmer` reviews the diff and points out problems
   without fixing them.
-- **Git identity.** Set on the Mac on 2026-10-07. The older commits
-  carried two wrong emails; the history was rewritten and force-pushed
-  the same day, so every commit hash changed. Record in
-  `note-todo-fix-commit-author-email.md`. The Acer's clone needs
-  `git fetch` and `git reset --hard origin/main` before its next use.
 
 ## Other notes from this session, same folder
 

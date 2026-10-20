@@ -1,5 +1,85 @@
 # Logbook — Shadow Glass
 
+## 2026-10-06 to 2026-10-20 — Phase 1, step 1: talking to the graphics card
+
+The first step of the staircase, done in six sessions for one small
+program, `server-windows/src/adapters_test.cpp`. Slow on purpose: the
+first C++ this project's author has written, with every piece run on
+the Acer before the next.
+
+**What the Acer answered.** Final output, commit `e3a0604`:
+
+    DPI awareness: ON
+    DXGI factory created.
+    Adapter 0: Intel(R) HD Graphics 620, vendor: 0x8086 (Intel), device: 0x5916, software: no
+        Output 0:  \\.\DISPLAY1, attached to desktop: yes, 1366x768
+    Adapter 1: NVIDIA GeForce 940MX, vendor: 0x10DE (NVIDIA), device: 0x134D, software: no
+    Adapter 2: Microsoft Basic Render Driver, vendor: 0x1414 (Microsoft), device: 0x008C, software: yes
+    Desktop output is on adapter 0.
+
+The screen is on the **Intel** adapter; the NVIDIA has no outputs.
+That settles where step 2 creates its D3D11 device, and sharpens the
+encoder question for step 4: NVENC would mean moving frames from the
+Intel adapter to the NVIDIA one; Quick Sync would not.
+
+**Where DXGI sits.** The picture that made it click: our program →
+DXGI (part of Windows) → the drivers → the GPUs. The program never
+talks to a card; that is why the code has no "if Intel / if NVIDIA".
+Inside DXGI, objects come through a chain — factory → adapter →
+output — and the program walked it one link per piece. "Adapter" is
+Windows' word for a graphics card, including one that is only software.
+
+**Pointers.** A variable whose content is an address. `&x` once, when
+asking Windows to fill a variable; `x->` every time after, to use the
+object. JavaScript's `document.querySelector` already returns a
+reference, not a copy — the same idea. `Release()` means "let go", and
+is always the last thing done with a pointer. Later, texts: `"Intel"`
+does not fit in a variable either, so `const char*` holds where its
+letters start.
+
+**DPI, verified rather than trusted.** The exercise was a line whose
+effect could not be seen at 100% scale, and the first plan was to skip
+testing it. The better plan came from going beyond the exercise: run
+the program both ways at 125%. With DPI awareness: 1366x768. Without:
+1093x614 — the logical size, 1366 / 1.25. Same idea as CSS pixels and
+`devicePixelRatio`. It also exposed a wrong conclusion drawn from an
+earlier comparison that had changed two things at once. Change one
+thing at a time — the staircase's own rule, applied to an experiment.
+
+**Checking the program against Windows.** Hexadecimal is a way of
+writing a number, not a different number; `0x` is a label, like a
+currency sign. With that, the IDs the program printed could be matched
+to Device Manager's hardware IDs (`VEN_8086&DEV_5916`,
+`VEN_10DE&DEV_134D`) — an independent source agreeing with ours.
+
+**Bit flags, taught twice.** The first attempt stacked five ideas and
+was stopped. The second went one at a time: what a software adapter is
+(Chrome's hardware acceleration switch), reading binary, flags as many
+feature flags packed into one number, then `&`. `==` would fail for an
+adapter with two flags set; `&` asks about one place only.
+
+**How the teaching settled.** Rules that came out of these sessions,
+now in `FOUNDATION.md`: the code is written by its author first and
+reviewed without being fixed; one idea per lesson; ask what is already
+known before explaining; questions that apply the idea to a new case,
+never ones answerable from the table above; fresh example values each
+time. What went wrong along the way — lessons with too many ideas,
+questions that gave the answer away, ambiguous wording read literally
+— is what produced those rules.
+
+**Limits, and what was not checked.** A run on the Acer cannot reach
+paths the Acer does not have: an unknown vendor, two desktop monitors.
+Those were checked by reading the code only. With two monitors on two
+adapters, the program would report only the last one — accepted for
+now. Three questions remain unverified: whether the secure desktop
+(login, UAC) blocks capture and input, what the PCI class codes
+`CC_0300` / `CC_0302` mean, and whether `1025` in `SUBSYS_` is Acer.
+
+**Also along the way:** the Acer's clone moved out of OneDrive, since a
+CMake `build` folder cannot follow its project to a new path; and
+`server-windows/build-target.bat` now configures, builds and runs a
+single target.
+
 ## 2026-10-20 — `construct` re-run: Claude Code bootstrap (recompile, ninth pass)
 
 Ran `@CONSTRUCT @HARI-SELDON` against this project from Free Wings, in
