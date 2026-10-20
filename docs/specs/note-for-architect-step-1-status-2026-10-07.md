@@ -238,6 +238,12 @@ Output at commit `e3a0604`:
   sessions and was taught from scratch: binary, then flags, then `&`.
 - `server-windows/README.md` now lists `adapters_test` and
   `build-target.bat`; the spec's status says done.
+- **`tester` was not run on step 1**, by the person's decision: every
+  piece had already been run on the Acer and its output checked. The
+  `unknown` vendor branch and the single-adapter limit remain covered
+  by code reading only.
+- How the teaching went, strengths and weaknesses included, is in
+  `note-for-foundation-teaching-approach.md` (added 2026-10-20).
 
 For the project's records: the staircase table in `FOUNDATION.md` still
 shows step 1 as "research done, spec and code not started".
