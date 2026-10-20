@@ -119,7 +119,7 @@ int main(int argc, char* argv[]) {
                 vendorName = "unknown";
         }
 
-        printf("Adapter %u: %ls, vendor: 0x%04X (%s), device: 0x%04X\n", i, desc.Description, desc.VendorId, vendorName, desc.DeviceId);
+        printf("Adapter %u: %ls, vendor: 0x%04X (%s), device: 0x%04X, software: %s\n", i, desc.Description, desc.VendorId, vendorName, desc.DeviceId, desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE ? "yes": "no");
 
         // Same shape as the adapter loop, one link further down the
         // chain: each adapter is asked for its outputs (screens) until
