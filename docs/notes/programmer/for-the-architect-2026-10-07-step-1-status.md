@@ -95,7 +95,7 @@ edit them.
   one target and runs it, printing the three stages and the exit code.
   `build.bat` is unchanged and still builds everything.
 - **How the person learns C++** — proposed text in
-  `note-for-foundation-teaching-approach.md`. Since then, in practice:
+  `for-the-architect-2026-10-06-foundation-teaching-approach.md`. Since then, in practice:
   from the output loop on, the person writes the code first, in the
   editor, and `programmer` reviews the diff and points out problems
   without fixing them.
@@ -107,11 +107,11 @@ edit them.
 
 ## Other notes from this session, same folder
 
-- `note-learning-2026-10-07-dxgi-vocabulary-and-pointers.md` — raw
+- `learning-2026-10-07-dxgi-vocabulary-and-pointers.md` — raw
   material for a `LEARNING_LOG.md` entry.
-- `note-first-cpp-code-2026-10-07.md` — the person's first C++ code,
+- `record-2026-10-07-first-cpp-code.md` — the person's first C++ code,
   kept as a record.
-- `note-study-plan-algorithms-book.md` — a side study plan.
+- `record-2026-10-06-study-plan-algorithms-book.md` — a side study plan.
 
 ## Who wrote what in `adapters_test.cpp`
 
@@ -142,7 +142,7 @@ remains in step 1" is closed. With the display scale at 125%,
   drawn from a comparison that changed two things at once. Worth
   keeping as a working rule: when the person proposes going beyond the
   exercise, treat it as a better plan, not as a detour.
-- Details in `note-learning-2026-10-13-pixels-dpi-and-an-experiment.md`.
+- Details in `learning-2026-10-13-pixels-dpi-and-an-experiment.md`.
 
 Still remaining in step 1: the summary line (item 2), the vendor and
 software-flag details (item 3), and the housekeeping (item 4).
@@ -184,7 +184,7 @@ desktop is shown. For a remote access tool that could freeze the image
 on the Mac, or leave the person unable to answer a UAC prompt remotely.
 Worth a `researcher` question before it matters — around step 3
 (continuous capture) or Phase 4 (input). Vocabulary in
-`note-vocabulary-2026-10-14-desktop.md`.
+`vocabulary-2026-10-14-desktop.md`.
 
 **Item 3, part 1 — vendor and device IDs: done and checked.** Output
 at commit `c66f721`:
@@ -195,7 +195,7 @@ at commit `c66f721`:
 
 The person checked both cards against Device Manager's hardware IDs
 (`PCI\VEN_8086&DEV_5916...` and `PCI\VEN_10DE&DEV_134D...`); they
-match. Details in `note-learning-2026-10-14-hex-and-hardware-ids.md`.
+match. Details in `learning-2026-10-14-hex-and-hardware-ids.md`.
 
 **Questions for `researcher`**, none urgent, all from the assistant's
 memory and unverified:
@@ -243,7 +243,7 @@ Output at commit `e3a0604`:
   `unknown` vendor branch and the single-adapter limit remain covered
   by code reading only.
 - How the teaching went, strengths and weaknesses included, is in
-  `note-for-foundation-teaching-approach.md` (added 2026-10-20).
+  `for-the-architect-2026-10-06-foundation-teaching-approach.md` (added 2026-10-20).
 
 For the project's records: the staircase table in `FOUNDATION.md` still
 shows step 1 as "research done, spec and code not started".

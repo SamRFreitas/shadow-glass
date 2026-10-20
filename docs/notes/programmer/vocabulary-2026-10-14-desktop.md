@@ -19,7 +19,7 @@ has its own coordinate system, spanning all monitors.
   part of this image on that output.
 - `DXGI_OUTPUT_DESC::DesktopCoordinates` — where that output sits inside
   the image. Its size depends on DPI awareness (see
-  `note-learning-2026-10-13-pixels-dpi-and-an-experiment.md`).
+  `learning-2026-10-13-pixels-dpi-and-an-experiment.md`).
 - `int desktopAdapter` — the adapter that owns the output showing it.
 - Desktop Duplication — copies this image; that is the capture of step 2.
 

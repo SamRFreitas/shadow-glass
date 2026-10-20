@@ -2,7 +2,7 @@
 
 - Date: 2026-10-06
 - Status: done 2026-10-20 — see
-  `note-for-architect-step-1-status-2026-10-07.md`
+  `docs/notes/programmer/for-the-architect-2026-10-07-step-1-status.md`
 - Staircase: step 1 of 7 (`FOUNDATION.md`, "Phase 1 plan")
 - Grounded in: `docs/research/2026-10-05-dxgi-adapters-hybrid-graphics.md`
 
