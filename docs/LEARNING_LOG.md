@@ -1,5 +1,39 @@
 # Logbook — Shadow Glass
 
+## 2026-10-20 — `construct` re-run: Claude Code bootstrap (recompile, ninth pass)
+
+Ran `@CONSTRUCT @HARI-SELDON` against this project from Free Wings, in
+**Claude Code** (detected from the `CLAUDECODE`, `CLAUDE_CODE_*`
+variables). Target: `/Users/samrfreitas/Lab/shadow-glass`. Mode:
+**recompile**, from the working tree's `FOUNDATION.md` (stamp
+`eff2817f…`, with uncommitted changes: the Acer's integrated Intel GPU,
+step 1 done and its answer, the native-size question, and how the
+person learns C++). The previous stamp was `fc5a373e…`.
+
+What changed:
+
+- `CLAUDE.md` — new stamp; the hardware line, step 1's status, the
+  answered open question and the new one about native size, the C++
+  learning rules, `deneir`'s observations now as notes in
+  `docs/notes/deneir/`, and every agent keeping notes in
+  `docs/notes/<its name>/`.
+- All six `.claude/agents/` files — from Free Wings' current
+  blueprints: the shared rules now include "Verified or assumed" and
+  "Notes"; `programmer`'s teaching rules were reworked.
+- All three `.claude/skills/<name>/SKILL.md` files — regenerated;
+  `write-diary` and `write-article` now read from `docs/notes/`.
+
+No compiled agent or skill was left without a blueprint.
+`.claude/settings.json` was not touched.
+
+Then, at the person's request, two things the run found were fixed and
+the project recompiled (stamp `d076885b…`): `FOUNDATION.md` no longer
+says `docs/specs/` "does not exist yet" and now lists `docs/notes/`; the
+nine `note-*.md` files in `docs/specs/` moved to `docs/notes/programmer/`
+under the harness's naming (`learning-`, `record-`, `vocabulary-`,
+`for-the-architect-`; Free Wings ADR 0004), with every reference to them
+updated.
+
 ## 2026-10-06 — `construct` re-run: Claude Code bootstrap (recompile, eighth pass)
 
 Ran `@CONSTRUCT @HARI-SELDON` against this project from Free Wings at
