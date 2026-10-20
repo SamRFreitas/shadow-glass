@@ -17,8 +17,10 @@ off-the-shelf lib like TeamViewer/AnyDesk).
 ## Project hardware
 
 - Client: MacBook Air M1 (Apple Silicon)
-- Server: Acer Aspire notebook, Windows 10 Home Single Language.
-  Intel Core i5-7200U CPU (2 cores/4 threads) + dedicated NVIDIA
+- Server: Acer Aspire notebook, Windows 10 Home Single Language,
+  version 22H2 (build 19045). Intel Core i5-7200U CPU (2 cores/4
+  threads) with integrated Intel HD Graphics 620, which drives the
+  1366x768 panel + dedicated NVIDIA
   GeForce 940MX GPU (2GB VRAM) — hardware video encode intended via
   **NVENC**, not yet validated on this GPU (Intel Quick Sync on the
   i5 is the fallback — see ADR 0003's 2026-10-05 update)
@@ -91,7 +93,7 @@ the Acer, since no agent can reach that machine):
 
 | # | Step | The one problem it isolates | Sign of success | Status |
 |---|---|---|---|---|
-| 1 | Talk to the graphics card | Can our program open Windows' graphics system (D3D11/DXGI) at all | It prints the Acer's graphics adapters and which one the monitor is attached to | research done, spec and code not started |
+| 1 | Talk to the graphics card | Can our program open Windows' graphics system (D3D11/DXGI) at all | It prints the Acer's graphics adapters and which one the monitor is attached to | done 2026-10-20 — `server-windows/src/adapters_test.cpp`, spec `docs/specs/phase-1-step-1-list-adapters.md` |
 | 2 | Capture one frame | Grabbing the screen once | A saved image shows the real screen | not started |
 | 3 | Capture continuously | Grabbing the screen for a few seconds | It prints the frames per second achieved | not started |
 | 4 | Choose the encoder | Which hardware encoder the Acer really has | One FFmpeg command on the Acer produces a video | not started |
@@ -108,18 +110,26 @@ written by `programmer` and confirmed by the person.
 
 **Open questions, to be answered by the steps, not assumed:**
 
-- **Which adapter the screen is attached to** (step 1). The Acer has two
-  GPUs. `docs/research/2026-10-05-dxgi-adapters-hybrid-graphics.md`
-  found that Microsoft documents two constraints: the D3D11 device used
-  for capture must be created on the adapter the output is connected
-  to, and on a "hybrid" laptop the capture does not run against the
-  dedicated GPU. Whether this Acer is such a system is **not confirmed**
-  by any source — step 1's output is what answers it.
-- **What that means for the encoder** (step 4). If the screen is on the
-  Intel adapter, capturing there and encoding with NVENC on the NVIDIA
+- **Which adapter the screen is attached to** — **answered by step 1,
+  2026-10-20: the Intel HD Graphics 620.** The Acer's only output, the
+  1366x768 panel, is attached to the desktop under the Intel adapter;
+  the NVIDIA 940MX and the Microsoft Basic Render Driver have no
+  outputs. This is consistent with Microsoft's definition of a hybrid
+  system as DXGI reported it to this process, not a formal proof.
+  For step 2 this means: the D3D11 device is created on the Intel
+  adapter, found by the output it owns, never by its index; and the
+  process declares DPI awareness before asking for any size (at 125%
+  scale, a process without it was told 1093x614 instead of 1366x768,
+  measured 2026-10-13). Details in
+  `docs/notes/programmer/for-the-architect-2026-10-07-step-1-status.md`.
+- **What that means for the encoder** (step 4). The screen is on the
+  Intel adapter, so capturing there and encoding with NVENC on the NVIDIA
   one means moving frames between adapters, and ADR 0003's
   `H264Encoder` interface takes a single `ID3D11Device`. Intel Quick
   Sync (`h264_qsv`) would sit on the same adapter as the capture.
+- **Native size or 720p.** The panel is 1366x768, not the 1280x720
+  the project starts from: encode at the native size, or scale down.
+  Not decided; step 7 needs the answer at the latest.
 - **Whether the 940MX supports NVENC at all**, and **where an LGPL
   FFmpeg build comes from** (step 4) — both unverified, see ADR 0003's
   2026-10-05 update.
@@ -138,8 +148,10 @@ written by `programmer` and confirmed by the person.
 - `docs/research/` — findings checked against real sources, one dated
   file per question, written by `researcher`
 - `docs/specs/` — one short spec per non-trivial piece of work, written
-  by `programmer` before the code (does not exist yet; the first one
-  will be Phase 1's step 1)
+  by `programmer` before the code (the first: Phase 1's step 1)
+- `docs/notes/` — the notes agents leave while working, one folder per
+  agent (Free Wings' shared agent rules); temporary, reviewed with
+  `the-architect`
 - `docs/LEARNING_LOG.md` — logbook, one entry per work session
 - `docs/SETUP.md` — dependency checklist per platform, plus known dead
   ends (things tried and abandoned, documented so they aren't retried
@@ -260,6 +272,34 @@ motivation, not just obvious mechanics. Whenever a topic stacks
 multiple layers/several acronyms, a Field Notes page (grounded in
 concrete entities/files before abstract mechanism) is the default,
 without needing to ask first.
+
+**How the person learns C++** (set 2026-10-06, refined through Phase
+1 step 1, 2026-10-20). Their background is JavaScript/TypeScript; C++
+and the Windows APIs are new.
+
+- Before each piece of code, a short lesson covering only the C++ that
+  piece uses, compared with JS/TS. One idea at a time; every question
+  shows the code it is about.
+- Before explaining a topic, ask what the person already knows about
+  it, and start from there.
+- The person writes the code first, in the editor. `programmer` reads
+  the diff and points out each problem with its reason, without fixing
+  it; the person fixes it. In code the person writes, comments are
+  added by `programmer` only when asked, after showing the text.
+- Manual resource handling first (`Release()` by hand); helpers such as
+  `ComPtr` only after the manual version is understood.
+- Approval of code is not a technical review: it means no line is
+  still unexplained. Correctness is judged by running it on the Acer.
+- A question must make the person apply the idea to a case not shown
+  in the explanation; one answerable from the table above it teaches
+  nothing.
+- Analogies from the person's own world (JS/TS, the web), only when
+  they are exact. Fresh example values in each explanation: numbers
+  reused from an earlier one make both confusing.
+- When the person proposes going beyond the exercise, treat it as a
+  better plan, not a detour.
+- Claude Code's prompt suggestions stay off while studying: accepted
+  with Tab, a suggestion can show the answer to a question.
 
 ## Process note: teach before asking
 
