@@ -1,4 +1,4 @@
-// adapters_test.cpp
+// adapters_spike.cpp
 //
 // Phase 1 staircase, step 1: "talk to the graphics card".
 // Spec: docs/specs/phase-1-step-1-list-adapters.md
@@ -33,7 +33,7 @@ int main(int argc, char* argv[]) {
     // screen capture works in physical pixels, so this program wants it
     // on. It comes first because it only affects what is asked afterwards.
     //
-    // Running with any extra word (adapters_test.exe unaware) leaves the
+    // Running with any extra word (adapters_spike.exe unaware) leaves the
     // switch off, so the difference can be seen. Observed on the Acer at
     // 125% scale: 1366x768 with it on, 1093x614 with it off. argv is
     // declared because main's two parameters come as a pair; only argc

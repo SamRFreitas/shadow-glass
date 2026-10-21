@@ -61,6 +61,6 @@ add_custom_command(TARGET signaling_test POST_BUILD
 # list the graphics adapters and the outputs attached to each one. Links
 # dxgi only — no d3d11 — because this step asks Windows what exists and
 # creates no rendering device; that starts in step 2.
-add_executable(adapters_test src/adapters_test.cpp)
-target_link_libraries(adapters_test PRIVATE dxgi)
-set_property(TARGET adapters_test PROPERTY CXX_STANDARD 17)
+add_executable(adapters_spike src/adapters_spike.cpp)
+target_link_libraries(adapters_spike PRIVATE dxgi)
+set_property(TARGET adapters_spike PROPERTY CXX_STANDARD 17)

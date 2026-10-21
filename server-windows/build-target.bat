@@ -7,14 +7,14 @@ REM the program under test is compiled, any error that shows up belongs
 REM to that program and not to an unrelated one.
 REM
 REM Example:
-REM   build-target adapters_test
+REM   build-target adapters_spike
 REM
 REM Run this from the Developer Command Prompt for VS, inside
 REM server-windows\ — it needs cl.exe on PATH, same as build.bat.
 
 if "%~1"=="" (
     echo Usage:   build-target ^<executable name^>
-    echo Example: build-target adapters_test
+    echo Example: build-target adapters_spike
     exit /b 1
 )
 
