@@ -1,17 +1,16 @@
-// adapters_spike.cpp
+// capture_frame_spike.cpp
 //
-// Phase 1 staircase, step 1: "talk to the graphics card".
-// Spec: docs/specs/phase-1-step-1-list-adapters.md
+// Phase 1 staircase, step 2: "capture one frame".
+// Spec: docs/specs/phase-1-step-2-capture-one-frame.md
 //
-// Asks DXGI — the part of Windows that knows which graphics cards exist
-// and which screen is plugged into which — to list them. Nothing is drawn
-// or captured here; the point is to learn which adapter owns the desktop
-// output, because screen capture (step 2) must be created on that adapter.
+// Built in pieces (see the spec). Piece 1: find the adapter that owns
+// the desktop output and keep both, because the next pieces need them —
+// the D3D11 device must be created on that adapter, and the duplication
+// is requested from that output.
 //
-// Windows only hands these objects out through a chain:
-//   factory -> adapter -> output
-// It prints every adapter (name, vendor, device, whether it is a software
-// one), the outputs under each, and which adapter holds the desktop.
+// The search starts from step 1's adapters_spike.cpp. The difference:
+// step 1 only looked at each object and gave it back at once; this
+// program keeps the two it needs and gives back everything else.
 //
 // Every object received from Windows is given back by hand with Release().
 // That is a deliberate choice for learning (see the spec); nothing here
@@ -33,7 +32,7 @@ int main(int argc, char* argv[]) {
     // screen capture works in physical pixels, so this program wants it
     // on. It comes first because it only affects what is asked afterwards.
     //
-    // Running with any extra word (adapters_spike.exe unaware) leaves the
+    // Running with any extra word (capture_frame_spike.exe unaware) leaves the
     // switch off, so the difference can be seen. Observed on the Acer at
     // 125% scale: 1366x768 with it on, 1093x614 with it off. argv is
     // declared because main's two parameters come as a pair; only argc
@@ -65,11 +64,17 @@ int main(int argc, char* argv[]) {
 
     printf("DXGI factory created.\n");
 
+    // What the search keeps for the next pieces. The two pointers stay
+    // empty until the desktop output is found; from then on they are the
+    // only objects this program holds past the loops.
     int desktopAdapter = -1;
+    IDXGIAdapter1* desktopOutputAdapter = nullptr;
+    IDXGIOutput* outputAttachedToDesktop = nullptr;
 
     // We do not know how many adapters there are, so the loop has no
-    // limit of its own: it asks for number 0, 1, 2... and leaves when
-    // Windows answers that there is no adapter with that number.
+    // limit of its own: it asks for number 0, 1, 2... It leaves when
+    // Windows answers that there is no adapter with that number, or as
+    // soon as the desktop output has been found (see the end of the loop).
     for (UINT i = 0; ; i++) {
         // Same gesture as for the factory, one link further down the
         // chain: an empty pointer, its address handed over, the answer
@@ -120,8 +125,6 @@ int main(int argc, char* argv[]) {
                 vendorName = "unknown";
         }
 
-        printf("Adapter %u: %ls, vendor: 0x%04X (%s), device: 0x%04X, software: %s\n", i, desc.Description, desc.VendorId, vendorName, desc.DeviceId, desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE ? "yes": "no");
-
         // Same shape as the adapter loop, one link further down the
         // chain: each adapter is asked for its outputs (screens) until
         // it answers that there is no output with that number. An
@@ -165,20 +168,42 @@ int main(int argc, char* argv[]) {
             }
             
             if(outputDesc.AttachedToDesktop) {
+
+                // This is the desktop output, so it and its adapter are
+                // kept: the pointers are copied out and, unlike every other
+                // object here, not released in the loop. Copying a pointer
+                // does not add an owner, so each one is released exactly
+                // once, at the end of main.
                 desktopAdapter = i;
+                desktopOutputAdapter = adapter;
+                outputAttachedToDesktop = output;
+
+                LONG width = outputDesc.DesktopCoordinates.right - outputDesc.DesktopCoordinates.left;
+                LONG height = outputDesc.DesktopCoordinates.bottom - outputDesc.DesktopCoordinates.top;
+
+                printf("Adapter %u: %ls, vendor: 0x%04X (%s), device: 0x%04X, software: %s\n", i, desc.Description, desc.VendorId, vendorName, desc.DeviceId, desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE ? "yes": "no");
+                printf("    Output %u:  %ls, attached to desktop: %s, %ldx%ld \n", j, outputDesc.DeviceName, outputDesc.AttachedToDesktop ? "yes" : "no", width, height);
+                
+                break;
+
             }
-            
-            LONG width = outputDesc.DesktopCoordinates.right - outputDesc.DesktopCoordinates.left;
-            LONG height = outputDesc.DesktopCoordinates.bottom - outputDesc.DesktopCoordinates.top;
 
-            printf("    Output %u:  %ls, attached to desktop: %s, %ldx%ld \n", j, outputDesc.DeviceName, outputDesc.AttachedToDesktop ? "yes" : "no", width, height);
-
+            // Not the desktop output: nothing here needs it, so it goes
+            // back now.
             output->Release();
+
         }
 
-        // Each turn receives one adapter and gives it back before the
-        // next turn asks for another.
+        // The desktop output was found on this adapter: stop asking for
+        // more. Adapters after this one are never received, so there is
+        // nothing else to give back.
+        if(desktopAdapter > -1){
+            break;
+        }
+
+        // No desktop output on this adapter, so it goes back now.
         adapter->Release();
+
     }
 
     // We received a factory, so we give it back.
@@ -186,9 +211,16 @@ int main(int argc, char* argv[]) {
 
     if(desktopAdapter < 0) {
         printf("No output attached to the desktop was found. \n");
+        return 1;
     } else {
         printf("Desktop output is on adapter %d. \n", desktopAdapter);
     }
+
+    // Kept until here because the next pieces use them: the device is
+    // created on the adapter (piece 2) and the duplication is requested
+    // from the output (piece 3). Last received, first given back.
+    outputAttachedToDesktop->Release();
+    desktopOutputAdapter->Release();
 
     return 0;
 }
