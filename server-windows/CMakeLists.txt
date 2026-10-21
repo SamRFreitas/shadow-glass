@@ -5,13 +5,6 @@ if(NOT WIN32)
     message(FATAL_ERROR "server-windows only compiles on Windows (it uses the Desktop Duplication API / D3D11, which are Windows APIs)")
 endif()
 
-# Phase 1: just the screen capture test. More executables (encode, network)
-# will land as new add_executable() calls in later phases — no anticipating
-# structure that doesn't exist yet.
-add_executable(capture_test src/capture_test.cpp)
-target_link_libraries(capture_test PRIVATE d3d11 dxgi)
-set_property(TARGET capture_test PROPERTY CXX_STANDARD 17)
-
 # Connectivity test, piece 7: build libdatachannel as part of our own
 # project (not just standalone in third_party/) and link a real executable
 # against it. NO_EXAMPLES/NO_TESTS off the default ON, since we only need

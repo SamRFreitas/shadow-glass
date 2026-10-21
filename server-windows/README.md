@@ -47,7 +47,6 @@ instructions were removed from this file.
 | `signaling_test` | The Windows end of the Mac ↔ Windows connection: listens on TCP port 45180, answers the Mac's offer and receives DataChannel messages (`docs/protocol.md`) | Working — re-tested 2026-10-05 |
 | `datachannel_offer_test` | That `libdatachannel` builds and links into our own project on Windows | Worked when written (piece 7); not re-run since |
 | `adapters_spike` | Phase 1, step 1: lists the graphics adapters, the outputs under each, and which adapter holds the desktop (`docs/specs/phase-1-step-1-list-adapters.md`) | Working — run on the Acer 2026-10-20 |
-| `capture_test` | An early attempt at screen capture | **Never validated — do not use** (see below) |
 
 ### Running `signaling_test`
 
@@ -59,16 +58,6 @@ It prints `Listening on port 45180. Waiting for a connection...`, and,
 once the Mac client connects and sends, `Message from Mac: Hello Mac`.
 It accepts **one connection per run**: to connect again, close it and
 start it again (and restart the Mac app too).
-
-### About `capture_test`
-
-`src/capture_test.cpp` was written at the very start of the project.
-Its only run on the Acer failed, the error was not recorded, and it was
-never retried. Screen capture is being **rebuilt from scratch** in
-small steps instead — see "Phase 1 plan" in `FOUNDATION.md`. Until the
-new capture works, this file stays where it is, untouched; it is not to
-be debugged, reused or copied from. It is still compiled by `build`
-because its target is still in `CMakeLists.txt`.
 
 ## When a build or run fails
 
