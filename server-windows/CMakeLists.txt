@@ -57,3 +57,12 @@ add_custom_command(TARGET signaling_test POST_BUILD
 add_executable(adapters_spike src/adapters_spike.cpp)
 target_link_libraries(adapters_spike PRIVATE dxgi)
 set_property(TARGET adapters_spike PROPERTY CXX_STANDARD 17)
+
+# Phase 1 staircase, step 2 (docs/specs/phase-1-step-2-capture-one-frame.md):
+# capture one frame of the desktop and save it as an image. Links dxgi to
+# find the adapter that owns the desktop output and to duplicate that
+# output, and d3d11 to create the device and the textures the frame is
+# copied through.
+add_executable(capture_frame_spike src/capture_frame_spike.cpp)
+target_link_libraries(capture_frame_spike PRIVATE dxgi d3d11)
+set_property(TARGET capture_frame_spike PROPERTY CXX_STANDARD 17)
