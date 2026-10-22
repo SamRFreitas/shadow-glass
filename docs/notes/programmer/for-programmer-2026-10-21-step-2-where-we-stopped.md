@@ -4,14 +4,23 @@
 
 ## State
 
-- Piece 1 of `docs/specs/phase-1-step-2-capture-one-frame.md` is
-  written, committed by the person and verified on the Acer: it prints
-  only the Intel adapter and `\\.\DISPLAY1` at 1366x768, exit code 0.
-- Piece 2 (create the D3D11 device on the kept adapter) not started.
-  The adapter-vs-device lesson was given; the person got it.
-- Small leftover: the output line still prints "attached to desktop:
-  yes", which is now always true. Harmless; record it in the step 2
-  log entry.
+Updated 2026-10-22, end of session. This section first said piece 1
+was done and piece 2 not started; both are out of date.
+
+- The first frame.bmp was captured on the Acer on 2026-10-22, with all
+  six pieces (commit 377cbdd). The answers are recorded in the spec
+  ("Answers from the Acer"); question 2 (the `unaware` run) is still
+  open.
+- Pieces 3 to 6 had been written by programmer at the person's
+  request. The source was then returned to piece 3 (commit 6ff5970), so
+  the person can redo pieces 4 to 6 step by step. The version at
+  377cbdd is a reference to compare against, not code to paste.
+- Next: piece 4, the AcquireNextFrame loop. Start by asking what the
+  person imagines goes in and comes out.
+- Ask whether the person wants the `releaseAll` lambda (a programmer
+  decision, not in the spec) or hand-written release lists per exit.
+- Leftover in the piece 3 version: the "Desktop output's adapter" print
+  lacks the space after the second colon (`%ls:0x`).
 
 ## What the person asked for next time
 
@@ -33,6 +42,12 @@ module.
   explained together. Separate them.
 - An abstract analogy (map, list, photo) did not land; tracing values
   in a table over the real code did.
+- 2026-10-22: before a piece, first say what it does in plain words,
+  then list the technical topics it needs, then go one at a time. The
+  person asked for exactly this after being lost.
+- Do not bring in a new word to explain another one ("connection" for
+  device, "card" for adapter): it added a second confusion.
+- A question whose answer is in the table just above it tests nothing.
 
 ## Deferred
 
