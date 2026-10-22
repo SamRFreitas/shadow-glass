@@ -17,3 +17,7 @@ AGENTS.md
 
 # Machine-local settings (see client-macos/.env.example).
 .env
+
+# Screenshots written by the capture spikes in server-windows: a picture
+# of the Acer's screen, never meant for the repository.
+*.bmp

@@ -20,6 +20,9 @@
 // Piece 5: copy the frame into a staging texture and map it, so its
 // pixels can be read by the CPU.
 //
+// Piece 6: copy the pixels row by row into a buffer of our own and save
+// them as frame.bmp.
+//
 // The search starts from step 1's adapters_spike.cpp. The difference:
 // step 1 only looked at each object and gave it back at once; this
 // program keeps the two it needs and gives back everything else.
@@ -37,6 +40,10 @@
 #include <d3d11.h>    // declares D3D11CreateDevice and the ID3D11* types
 
 #include <dxgi1_2.h>  // declares IDXGIOutput1 and the Desktop Duplication types
+
+#include <cstdint>    // uint8_t, one byte
+#include <cstring>    // memcpy
+#include <vector>     // std::vector, the pixel buffer
 
 int main(int argc, char* argv[]) {
 
@@ -611,6 +618,94 @@ int main(int argc, char* argv[]) {
 
     printf("Frame mapped: RowPitch %u bytes, Width * 4 = %u bytes\n",
         mappedFrame.RowPitch, frameDesc.Width * 4);
+
+    // Piece 6: copy the pixels out and save them as frame.bmp.
+    //
+    // A buffer of our own, sized for the whole picture. std::vector is
+    // the C++ standard library's growable array, the closest thing to a
+    // JavaScript array: it frees its own memory when main ends, so unlike
+    // the COM objects it needs no Release().
+    const UINT width = frameDesc.Width;
+    const UINT height = frameDesc.Height;
+    const UINT rowBytes = width * 4;
+    std::vector<uint8_t> pixels(static_cast<size_t>(rowBytes) * height);
+
+    // pData is where the mapped texture starts. Seen as a uint8_t*, adding
+    // n to it moves n bytes forward, so row y starts y * RowPitch bytes
+    // in. Only the first rowBytes of each row are pixels; the rest, if
+    // any, is padding and is not copied.
+    const uint8_t* source = static_cast<const uint8_t*>(mappedFrame.pData);
+
+    for (UINT y = 0; y < height; y++) {
+        memcpy(&pixels[static_cast<size_t>(y) * rowBytes],
+               source + static_cast<size_t>(y) * mappedFrame.RowPitch,
+               rowBytes);
+    }
+
+    // The fourth byte of every pixel becomes 0xFF, fully opaque. Microsoft
+    // says it is unused in this BMP format, but some viewers read it as
+    // transparency, and what DXGI leaves there is not documented.
+    for (size_t i = 3; i < pixels.size(); i += 4) {
+        pixels[i] = 0xFF;
+    }
+
+    // The pixels are ours now: the texture is closed for reading and the
+    // frame handed back to the duplication, in that order (copy, map,
+    // read, unmap, then ReleaseFrame, as the spec decided).
+    deviceContext->Unmap(stagingTexture, 0);
+    stagingMapped = false;
+    duplication->ReleaseFrame();
+    frameHeld = false;
+
+    // The file is a file header, an info header, then the pixels with no
+    // gaps: at 32 bits per pixel a row is always a multiple of 4 bytes, so
+    // BMP needs no row padding. A negative height means the first row in
+    // the file is the top of the picture, the order the rows came out of
+    // the texture. The header is assumed to be packed to 14 bytes; the
+    // build checks it instead of trusting it.
+    static_assert(sizeof(BITMAPFILEHEADER) == 14, "BITMAPFILEHEADER must be 14 bytes");
+
+    BITMAPFILEHEADER fileHeader = {};
+    fileHeader.bfType = 0x4D42; // the letters "BM", the format's signature
+    fileHeader.bfOffBits = sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER);
+    fileHeader.bfSize = fileHeader.bfOffBits + static_cast<DWORD>(pixels.size());
+
+    BITMAPINFOHEADER infoHeader = {};
+    infoHeader.biSize = sizeof(BITMAPINFOHEADER);
+    infoHeader.biWidth = static_cast<LONG>(width);
+    infoHeader.biHeight = -static_cast<LONG>(height);
+    infoHeader.biPlanes = 1;
+    infoHeader.biBitCount = 32;
+    infoHeader.biCompression = BI_RGB;
+    infoHeader.biSizeImage = static_cast<DWORD>(pixels.size());
+
+    // An open file is one more thing received that must be given back,
+    // with fclose. fopen_s is Visual Studio's version of fopen: it reports
+    // failure through its return value, and plain fopen makes MSVC warn.
+    // The file lands in the folder the program is run from.
+    FILE* file = nullptr;
+    if (fopen_s(&file, "frame.bmp", "wb") != 0 || file == nullptr) {
+        printf("Could not create frame.bmp\n");
+        releaseAll();
+        return 1;
+    }
+
+    // fwrite returns how many items it wrote; anything short of 1 means
+    // the file is incomplete.
+    bool written =
+        fwrite(&fileHeader, sizeof(fileHeader), 1, file) == 1 &&
+        fwrite(&infoHeader, sizeof(infoHeader), 1, file) == 1 &&
+        fwrite(pixels.data(), pixels.size(), 1, file) == 1;
+
+    fclose(file);
+
+    if (!written) {
+        printf("Writing frame.bmp failed\n");
+        releaseAll();
+        return 1;
+    }
+
+    printf("Saved frame.bmp: %ux%u\n", width, height);
 
     releaseAll();
     return 0;
