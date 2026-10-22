@@ -15,13 +15,12 @@
 
 ## What the person asked for next time
 
-- **Start step 2's code from scratch**, piece by piece, instead of
-  adapting a copy of `adapters_spike.cpp`. Practice first.
-- **Reuse "like JS modules"**: what they meant by "reuse adapters" was
-  one file exporting and another importing (a `.h` + `.cpp`), not a
-  copy. The spec says "copied, not shared"; changing that is a spec
-  change, to show and confirm before writing. Writing the search as a
-  function while starting over is a natural first step.
+Corrected 2026-10-22. This section first said the person wanted to
+start step 2's code from scratch and to share the search as a `.h` +
+`.cpp` module. That was a misreading: the remark was about how piece 1
+could have been approached, said after it was already done. Step 2
+continues from the current `capture_frame_spike.cpp`; no restart, no
+module.
 
 ## How to teach, learned today
 

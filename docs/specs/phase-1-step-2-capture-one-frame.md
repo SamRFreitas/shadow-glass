@@ -1,7 +1,8 @@
 # Phase 1, step 2 — Capture one frame and save it as an image
 
 - Date: 2026-10-21
-- Status: spec, not started
+- Status: frame.bmp first captured on the Acer 2026-10-22, with all six
+  pieces (commit 377cbdd); pieces 4-6 being redone by the person
 - Staircase: step 2 of 7 (`FOUNDATION.md`, "Phase 1 plan")
 - Grounded in: `docs/research/2026-10-20-desktop-duplication-one-frame-and-bmp.md`,
   building on `docs/research/2026-10-05-dxgi-adapters-hybrid-graphics.md`
@@ -121,6 +122,37 @@ From the research's list, each answered by a line this program prints:
    `DesktopImageInSystemMemory` — pieces 3 and 5.
 5. `RowPitch` against `Width * 4` — piece 5.
 6. Colours and orientation of `frame.bmp` — piece 6.
+
+### Answers from the Acer, 2026-10-22
+
+1. `DuplicateOutput` on the Intel device returned `S_OK`. Before it, the
+   device was created on the Intel (feature level `0xB000`), and the
+   device's own adapter matched the desktop output's (same name, vendor
+   `0x8086`, DeviceId `0x5916`).
+2. Not run with `unaware` yet. Still open.
+3. The first `AcquireNextFrame` returned `S_OK` with `LastPresentTime`
+   0 and `AccumulatedFrames` 0: no image. The second carried it
+   (`AccumulatedFrames` 1). No timeouts.
+4. Frame texture 1366x768, format 87 (`DXGI_FORMAT_B8G8R8A8_UNORM`), 1
+   mip, 1 slice, samples 1/0, matching the staging description.
+   `DesktopImageInSystemMemory` was false, so the staging copy is
+   needed, not only a precaution.
+5. `RowPitch` 5504 against `Width * 4` = 5464: 40 bytes of padding per
+   row. A single copy of the whole buffer would have sheared the image.
+6. `frame.bmp` showed the whole screen, upright, with the right colours
+   (checked by the person; the image is not kept in the repository).
+
+### Departures from this spec
+
+- Piece 2 was split in two: create the device (2a), then ask it for its
+  adapter and print both (2b).
+- Pieces 3 to 6 were written by programmer, not by the person, at the
+  person's request, to reach a working image in one day. The person
+  then chose to redo pieces 4 to 6 themselves, step by step.
+- From piece 4 on, every exit releases through one lambda
+  (`releaseAll`) instead of a hand-written list per exit. Not in the
+  decisions above; the person may keep it or go back to the lists.
+- `*.bmp` added to `.gitignore`: the image is a picture of the screen.
 
 ## Pieces
 
