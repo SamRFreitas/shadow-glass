@@ -11,6 +11,9 @@
 // Piece 2: create the D3D11 device on that adapter, then ask the device
 // back which adapter it is on, and print both so they can be compared.
 //
+// Piece 3: request the duplication of the desktop output and print its
+// description.
+//
 // The search starts from step 1's adapters_spike.cpp. The difference:
 // step 1 only looked at each object and gave it back at once; this
 // program keeps the two it needs and gives back everything else.
@@ -26,6 +29,8 @@
 #include <cstdio>     // printf
 
 #include <d3d11.h>    // declares D3D11CreateDevice and the ID3D11* types
+
+#include <dxgi1_2.h>  // declares IDXGIOutput1 and the Desktop Duplication types
 
 int main(int argc, char* argv[]) {
 
@@ -343,22 +348,90 @@ int main(int argc, char* argv[]) {
     // The same name, vendor and DeviceId on both lines mean the device is
     // on the adapter that owns the screen. DeviceId names the model, not
     // the unit; on the Acer there is only one Intel.
-    printf("Desktop output's adapter:%ls: 0x%04X (%s) 0x%04X\n", desc.Description, desc.VendorId, vendorName, desc.DeviceId);
+    printf("Desktop output's adapter: %ls:0x%04X (%s) 0x%04X\n", desc.Description, desc.VendorId, vendorName, desc.DeviceId);
     printf("Device's adapter:         %ls: 0x%04X (%s) 0x%04X\n", dxgiDesc.Description, dxgiDesc.VendorId, dxgiVendorName, dxgiDesc.DeviceId);
 
-    // The device's adapter and its DXGI face arrived last, so they go
-    // back first.
+    // The device's adapter and its DXGI face were only needed for the
+    // comparison above, so they go back now, most recent first. Nothing
+    // below uses them, so no exit further down has to remember them.
     dxgiAdapter->Release();
     dxgiDevice->Release();
 
-    // The context and the device arrived last, so they go back first; the
-    // context belongs to the device, so it goes before it.
+    // Piece 3: ask Windows for a duplication of the desktop output.
+    //
+    // DuplicateOutput lives on IDXGIOutput1, a newer version of the
+    // output interface; the search kept the older IDXGIOutput face. As
+    // with the device above, the same object is asked for its newer face.
+    // The new pointer arrives through a **, so it is one more owner of
+    // the output object, released on its own at the end.
+    IDXGIOutput1* output1 = nullptr;
+    hr = outputAttachedToDesktop->QueryInterface(IID_PPV_ARGS(&output1));
+
+    if(FAILED(hr)) {
+
+        printf("QueryInterface(IDXGIOutput1) failed: 0x%08lX\n", hr);
+
+        deviceContext->Release();
+        device->Release();
+
+        outputAttachedToDesktop->Release();
+        desktopOutputAdapter->Release();
+
+        return 1;
+    }
+
+    // The device goes in: it must have been created on the adapter that
+    // owns this output, which is what piece 2 checked. The duplication
+    // comes out. Expected failures, from the research
+    // (docs/research/2026-10-20-desktop-duplication-one-frame-and-bmp.md):
+    //   E_INVALIDARG            device on the wrong adapter, or this
+    //                           program already duplicates this output
+    //   E_ACCESSDENIED          the lock screen or a UAC prompt is showing
+    //   DXGI_ERROR_UNSUPPORTED  a desktop mode duplication cannot handle
+    IDXGIOutputDuplication* duplication = nullptr;
+    hr = output1->DuplicateOutput(device, &duplication);
+
+    if(FAILED(hr)) {
+
+        printf("DuplicateOutput failed: 0x%08lX\n", hr);
+
+        // Nothing new arrived; output1 did, one step earlier.
+        output1->Release();
+
+        deviceContext->Release();
+        device->Release();
+
+        outputAttachedToDesktop->Release();
+        desktopOutputAdapter->Release();
+
+        return 1;
+    }
+
+    // GetDesc on a duplication returns nothing: it cannot fail, so there
+    // is no hr to test. ModeDesc is the display mode being duplicated, so
+    // its size is the screen's real size whatever the DPI awareness.
+    // DesktopImageInSystemMemory says whether the frame can be read
+    // without a staging copy; the plan in the spec copies either way, but
+    // the value is only known by running it on the Acer.
+    DXGI_OUTDUPL_DESC duplicationDesc;
+    duplication->GetDesc(&duplicationDesc);
+
+    printf("Duplication created: %ux%u, desktop image in system memory: %s\n",
+        duplicationDesc.ModeDesc.Width,
+        duplicationDesc.ModeDesc.Height,
+        duplicationDesc.DesktopImageInSystemMemory ? "yes" : "no");
+
+    // Everything still held, most recent first: the duplication, the
+    // output's newer face, the context and the device.
+    duplication->Release();
+    output1->Release();
+
+    // The context belongs to the device, so it goes before it.
     deviceContext->Release();
     device->Release();
 
-    // Kept until here: the adapter was needed to create the device above,
-    // and the output is where piece 3 will request the duplication. Last
-    // received, first given back.
+    // Kept since the search: the adapter was needed to create the device,
+    // and the output to request the duplication.
     outputAttachedToDesktop->Release();
     desktopOutputAdapter->Release();
 
