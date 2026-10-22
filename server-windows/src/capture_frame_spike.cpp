@@ -8,6 +8,9 @@
 // the D3D11 device must be created on that adapter, and the duplication
 // is requested from that output.
 //
+// Piece 2: create the D3D11 device on that adapter, then ask the device
+// back which adapter it is on, and print both so they can be compared.
+//
 // The search starts from step 1's adapters_spike.cpp. The difference:
 // step 1 only looked at each object and gave it back at once; this
 // program keeps the two it needs and gives back everything else.
@@ -64,9 +67,10 @@ int main(int argc, char* argv[]) {
 
     printf("DXGI factory created.\n");
 
-    // What the search keeps for the next pieces. The two pointers stay
-    // empty until the desktop output is found; from then on they are the
-    // only objects this program holds past the loops.
+    // What the search keeps for the next pieces: the two pointers, which
+    // stay empty until the desktop output is found, and that adapter's
+    // description and vendor name, printed again in piece 2. They are
+    // declared in main's scope so they still exist after the loops.
     int desktopAdapter = -1;
     IDXGIAdapter1* desktopOutputAdapter = nullptr;
     IDXGIOutput* outputAttachedToDesktop = nullptr;
@@ -98,9 +102,9 @@ int main(int argc, char* argv[]) {
 
         // A description is plain data, not an object borrowed from
         // Windows: this struct is ours, Windows copies the adapter's
-        // details into it, and it needs no Release(). The & is there so
-        // the function can write into a variable that lives here.
-        
+        // details into it, and it needs no Release(). Each turn
+        // overwrites it; the loop stops right after the desktop output's
+        // adapter is described, so after the loops it holds that one.
         hr = adapter->GetDesc1(&desc);
         if (FAILED(hr)) {
             // Both pointers were received by now, so both go back, last
@@ -235,7 +239,7 @@ int main(int argc, char* argv[]) {
         desktopOutputAdapter,
         D3D_DRIVER_TYPE_UNKNOWN,
         nullptr,
-            0,
+        0,
         nullptr,
         0,
         D3D11_SDK_VERSION,
@@ -250,15 +254,19 @@ int main(int argc, char* argv[]) {
 
         // Nothing new was received, so only the two objects kept by the
         // search go back.
-	    outputAttachedToDesktop->Release();
+        outputAttachedToDesktop->Release();
         desktopOutputAdapter->Release();
 
-	    return 1;
+        return 1;
 
     }
 
     printf("Device was created: 0x%X \n", featureLevel);
-    
+
+    // Ask the device which adapter it is on. The ID3D11Device face has no
+    // GetAdapter; the same object's IDXGIDevice face does, so
+    // QueryInterface asks for that face. The new pointer arrives through a
+    // **, so it adds an owner and needs its own Release().
     IDXGIDevice* dxgiDevice = nullptr;
     hr = device->QueryInterface(IID_PPV_ARGS(&dxgiDevice));
     
@@ -275,6 +283,8 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
+    // GetAdapter hands back the older IDXGIAdapter interface, so its
+    // description is a DXGI_ADAPTER_DESC, read with GetDesc (no 1).
     IDXGIAdapter*  dxgiAdapter = nullptr;
     hr = dxgiDevice->GetAdapter(&dxgiAdapter);
 
@@ -301,8 +311,8 @@ int main(int argc, char* argv[]) {
 
         printf("GetDesc(DXGI_ADAPTER_DESC) failed: 0x%08lX\n", hr);
 
-	    dxgiAdapter->Release();
-	    dxgiDevice->Release();
+        dxgiAdapter->Release();
+        dxgiDevice->Release();
 
         deviceContext->Release();
         device->Release();
@@ -310,7 +320,7 @@ int main(int argc, char* argv[]) {
         outputAttachedToDesktop->Release();
         desktopOutputAdapter->Release();
 
-	    return 1;    
+        return 1;
 
     }
 
@@ -330,12 +340,17 @@ int main(int argc, char* argv[]) {
             dxgiVendorName = "unknown";
     }
 
-    printf("Desktop output's adapter: %ls: 0x%04X (%s) 0x%04X\n", desc.Description, desc.VendorId, vendorName, desc.DeviceId);
+    // The same name, vendor and DeviceId on both lines mean the device is
+    // on the adapter that owns the screen. DeviceId names the model, not
+    // the unit; on the Acer there is only one Intel.
+    printf("Desktop output's adapter:%ls: 0x%04X (%s) 0x%04X\n", desc.Description, desc.VendorId, vendorName, desc.DeviceId);
     printf("Device's adapter:         %ls: 0x%04X (%s) 0x%04X\n", dxgiDesc.Description, dxgiDesc.VendorId, dxgiVendorName, dxgiDesc.DeviceId);
 
+    // The device's adapter and its DXGI face arrived last, so they go
+    // back first.
     dxgiAdapter->Release();
     dxgiDevice->Release();
-    
+
     // The context and the device arrived last, so they go back first; the
     // context belongs to the device, so it goes before it.
     deviceContext->Release();
