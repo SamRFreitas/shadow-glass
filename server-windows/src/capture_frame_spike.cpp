@@ -14,6 +14,9 @@
 // Piece 3: request the duplication of the desktop output and print its
 // description.
 //
+// Piece 4: acquire one frame that carries a desktop image, printing
+// every attempt.
+//
 // The search starts from step 1's adapters_spike.cpp. The difference:
 // step 1 only looked at each object and gave it back at once; this
 // program keeps the two it needs and gives back everything else.
@@ -348,7 +351,7 @@ int main(int argc, char* argv[]) {
     // The same name, vendor and DeviceId on both lines mean the device is
     // on the adapter that owns the screen. DeviceId names the model, not
     // the unit; on the Acer there is only one Intel.
-    printf("Desktop output's adapter: %ls:0x%04X (%s) 0x%04X\n", desc.Description, desc.VendorId, vendorName, desc.DeviceId);
+    printf("Desktop output's adapter: %ls: 0x%04X (%s) 0x%04X\n", desc.Description, desc.VendorId, vendorName, desc.DeviceId);
     printf("Device's adapter:         %ls: 0x%04X (%s) 0x%04X\n", dxgiDesc.Description, dxgiDesc.VendorId, dxgiVendorName, dxgiDesc.DeviceId);
 
     // The device's adapter and its DXGI face were only needed for the
@@ -421,19 +424,93 @@ int main(int argc, char* argv[]) {
         duplicationDesc.ModeDesc.Height,
         duplicationDesc.DesktopImageInSystemMemory ? "yes" : "no");
 
-    // Everything still held, most recent first: the duplication, the
-    // output's newer face, the context and the device.
-    duplication->Release();
-    output1->Release();
+    // From here on, every exit has to give back the same growing list of
+    // objects, so the list is written once, as a lambda: a small function
+    // declared inside main that sees main's variables (that is what [&]
+    // means), like a JavaScript arrow function that closes over the
+    // variables around it. What arrives below starts as nullptr or false
+    // and is only given back if it really arrived, so the same lambda is
+    // right at every exit. Most recent first.
+    IDXGIResource* frameResource = nullptr;
+    bool frameHeld = false;
 
-    // The context belongs to the device, so it goes before it.
-    deviceContext->Release();
-    device->Release();
+    auto releaseAll = [&]() {
+        // A frame is handed back to the duplication with ReleaseFrame;
+        // the pointer to it is one more owner, released after that.
+        if (frameHeld) {
+            duplication->ReleaseFrame();
+        }
+        if (frameResource) {
+            frameResource->Release();
+        }
 
-    // Kept since the search: the adapter was needed to create the device,
-    // and the output to request the duplication.
-    outputAttachedToDesktop->Release();
-    desktopOutputAdapter->Release();
+        duplication->Release();
+        output1->Release();
 
+        // The context belongs to the device, so it goes before it.
+        deviceContext->Release();
+        device->Release();
+
+        // Kept since the search: the adapter was needed to create the
+        // device, and the output to request the duplication.
+        outputAttachedToDesktop->Release();
+        desktopOutputAdapter->Release();
+    };
+
+    // Piece 4: get one frame that carries a desktop image.
+    //
+    // AcquireNextFrame waits up to 500 ms for the screen to change. A
+    // timeout is not an error: the screen simply did not change. A frame
+    // can also carry only a mouse move, with LastPresentTime == 0 and no
+    // new image; that one is handed back and the next one asked for. At
+    // most 10 tries, each one printed, so the Acer shows what really
+    // arrives first (an open question in the spec).
+    DXGI_OUTDUPL_FRAME_INFO frameInfo;
+    const int maxAttempts = 10;
+
+    for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+        hr = duplication->AcquireNextFrame(500, &frameInfo, &frameResource);
+
+        if (hr == DXGI_ERROR_WAIT_TIMEOUT) {
+            // Nothing was acquired, so there is nothing to hand back.
+            printf("Attempt %d: timeout, the screen did not change\n", attempt);
+            continue;
+        }
+
+        if (FAILED(hr)) {
+            // DXGI_ERROR_ACCESS_LOST here means the duplication must be
+            // created again; for a one-frame program, running it again
+            // is exactly that.
+            printf("AcquireNextFrame failed: 0x%08lX\n", hr);
+            releaseAll();
+            return 1;
+        }
+
+        frameHeld = true;
+
+        printf("Attempt %d: LastPresentTime %lld, AccumulatedFrames %u\n",
+            attempt, frameInfo.LastPresentTime.QuadPart, frameInfo.AccumulatedFrames);
+
+        if (frameInfo.LastPresentTime.QuadPart != 0) {
+            break;
+        }
+
+        // Only the pointer moved. This frame goes back before the next
+        // one is asked for, or AcquireNextFrame fails with INVALID_CALL.
+        duplication->ReleaseFrame();
+        frameHeld = false;
+        frameResource->Release();
+        frameResource = nullptr;
+    }
+
+    if (!frameHeld) {
+        printf("No frame with a desktop image after %d attempts; move something on the screen and run again.\n", maxAttempts);
+        releaseAll();
+        return 1;
+    }
+
+    printf("Frame with a desktop image received.\n");
+
+    releaseAll();
     return 0;
 }
