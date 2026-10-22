@@ -22,7 +22,7 @@
 
 #include <cstdio>     // printf
 
-
+#include <d3d11.h>    // declares D3D11CreateDevice and the ID3D11* types
 
 int main(int argc, char* argv[]) {
 
@@ -216,9 +216,57 @@ int main(int argc, char* argv[]) {
         printf("Desktop output is on adapter %d. \n", desktopAdapter);
     }
 
-    // Kept until here because the next pieces use them: the device is
-    // created on the adapter (piece 2) and the duplication is requested
-    // from the output (piece 3). Last received, first given back.
+    // Piece 2: open this program's working connection to the adapter that
+    // owns the desktop output. One call hands back two objects: the
+    // device, which creates things on the adapter (textures, and the
+    // duplication in piece 3), and the immediate context, which tells the
+    // adapter to do things (copies, in piece 5). Both start empty and are
+    // filled in by Windows. The feature level is plain data, like the
+    // adapter's description, so it needs no Release().
+    ID3D11Device* device = nullptr;
+    ID3D11DeviceContext* deviceContext = nullptr;
+    D3D_FEATURE_LEVEL featureLevel;
+
+    // The adapter is passed explicitly, so the driver type must be UNKNOWN:
+    // with a non-null adapter, any other value fails with E_INVALIDARG
+    // (docs/research/2026-10-05-dxgi-adapters-hybrid-graphics.md). No
+    // flags; nullptr and 0 for the feature levels mean the default list.
+    hr = D3D11CreateDevice(
+        desktopOutputAdapter,
+        D3D_DRIVER_TYPE_UNKNOWN,
+	nullptr,
+        0,
+	nullptr,
+	0,
+	D3D11_SDK_VERSION,
+	&device,
+	&featureLevel,
+	&deviceContext
+    );
+
+    if(FAILED(hr)) {
+
+        printf("D3D11CreateDevice failed: 0x%08lX \n", hr);
+
+        // Nothing new was received, so only the two objects kept by the
+        // search go back.
+	outputAttachedToDesktop->Release();
+        desktopOutputAdapter->Release();
+
+	return 1;
+
+    }
+
+    printf("Device was created: 0x%X \n", featureLevel);
+
+    // The context and the device arrived last, so they go back first; the
+    // context belongs to the device, so it goes before it.
+    deviceContext->Release();
+    device->Release();
+
+    // Kept until here: the adapter was needed to create the device above,
+    // and the output is where piece 3 will request the duplication. Last
+    // received, first given back.
     outputAttachedToDesktop->Release();
     desktopOutputAdapter->Release();
 
