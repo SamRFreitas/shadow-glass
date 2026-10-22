@@ -17,6 +17,9 @@
 // Piece 4: acquire one frame that carries a desktop image, printing
 // every attempt.
 //
+// Piece 5: copy the frame into a staging texture and map it, so its
+// pixels can be read by the CPU.
+//
 // The search starts from step 1's adapters_spike.cpp. The difference:
 // step 1 only looked at each object and gave it back at once; this
 // program keeps the two it needs and gives back everything else.
@@ -433,12 +436,26 @@ int main(int argc, char* argv[]) {
     // right at every exit. Most recent first.
     IDXGIResource* frameResource = nullptr;
     bool frameHeld = false;
+    ID3D11Texture2D* frameTexture = nullptr;
+    ID3D11Texture2D* stagingTexture = nullptr;
+    bool stagingMapped = false;
 
     auto releaseAll = [&]() {
+        // A mapped texture is closed for reading before it goes back.
+        if (stagingMapped) {
+            deviceContext->Unmap(stagingTexture, 0);
+        }
+        if (stagingTexture) {
+            stagingTexture->Release();
+        }
+
         // A frame is handed back to the duplication with ReleaseFrame;
         // the pointer to it is one more owner, released after that.
         if (frameHeld) {
             duplication->ReleaseFrame();
+        }
+        if (frameTexture) {
+            frameTexture->Release();
         }
         if (frameResource) {
             frameResource->Release();
@@ -510,6 +527,90 @@ int main(int argc, char* argv[]) {
     }
 
     printf("Frame with a desktop image received.\n");
+
+    // Piece 5: bring the frame to where the CPU can read it.
+    //
+    // The frame arrives as a generic IDXGIResource; the same object's
+    // ID3D11Texture2D face is what D3D11 can describe and copy.
+    hr = frameResource->QueryInterface(IID_PPV_ARGS(&frameTexture));
+
+    if(FAILED(hr)) {
+        printf("QueryInterface(ID3D11Texture2D) failed: 0x%08lX\n", hr);
+        releaseAll();
+        return 1;
+    }
+
+    // The frame's own description is the truth about its size: not
+    // DesktopCoordinates, which changes with DPI awareness. Every field
+    // the staging copy depends on is printed, because CopyResource
+    // returns nothing: a mismatch would fail silently.
+    D3D11_TEXTURE2D_DESC frameDesc;
+    frameTexture->GetDesc(&frameDesc);
+
+    printf("Frame texture: %ux%u, format %u, mips %u, array %u, samples %u/%u\n",
+        frameDesc.Width, frameDesc.Height, frameDesc.Format,
+        frameDesc.MipLevels, frameDesc.ArraySize,
+        frameDesc.SampleDesc.Count, frameDesc.SampleDesc.Quality);
+
+    // DuplicateOutput is documented to always give B8G8R8A8_UNORM: blue,
+    // green, red, then a fourth byte, one byte each. Piece 6 writes the
+    // bytes in that order, so checking costs one line and turns a
+    // documented promise into something seen.
+    if (frameDesc.Format != DXGI_FORMAT_B8G8R8A8_UNORM) {
+        printf("Unexpected frame format %u; expected %u (B8G8R8A8_UNORM)\n",
+            frameDesc.Format, DXGI_FORMAT_B8G8R8A8_UNORM);
+        releaseAll();
+        return 1;
+    }
+
+    // The staging texture: same size and format as the frame, but made
+    // for one job only, being copied into and read by the CPU. The rules
+    // for that force Usage, CPUAccessFlags, BindFlags and MiscFlags; the
+    // single mip, slice and sample match what the frame is expected to
+    // have, which the line above shows.
+    D3D11_TEXTURE2D_DESC stagingDesc = {};
+    stagingDesc.Width = frameDesc.Width;
+    stagingDesc.Height = frameDesc.Height;
+    stagingDesc.Format = frameDesc.Format;
+    stagingDesc.MipLevels = 1;
+    stagingDesc.ArraySize = 1;
+    stagingDesc.SampleDesc.Count = 1;
+    stagingDesc.SampleDesc.Quality = 0;
+    stagingDesc.Usage = D3D11_USAGE_STAGING;
+    stagingDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+    stagingDesc.BindFlags = 0;
+    stagingDesc.MiscFlags = 0;
+
+    // The device creates; nullptr means the texture starts with no data.
+    hr = device->CreateTexture2D(&stagingDesc, nullptr, &stagingTexture);
+
+    if(FAILED(hr)) {
+        printf("CreateTexture2D(staging) failed: 0x%08lX\n", hr);
+        releaseAll();
+        return 1;
+    }
+
+    // The context tells the adapter to copy. It returns nothing, so there
+    // is no hr to test here.
+    deviceContext->CopyResource(stagingTexture, frameTexture);
+
+    // Map opens the staging texture for reading and waits for the copy
+    // above to finish. RowPitch is the distance in bytes from one row to
+    // the next; it may be larger than Width * 4 because of padding, which
+    // is why piece 6 copies row by row.
+    D3D11_MAPPED_SUBRESOURCE mappedFrame;
+    hr = deviceContext->Map(stagingTexture, 0, D3D11_MAP_READ, 0, &mappedFrame);
+
+    if(FAILED(hr)) {
+        printf("Map(staging) failed: 0x%08lX\n", hr);
+        releaseAll();
+        return 1;
+    }
+
+    stagingMapped = true;
+
+    printf("Frame mapped: RowPitch %u bytes, Width * 4 = %u bytes\n",
+        mappedFrame.RowPitch, frameDesc.Width * 4);
 
     releaseAll();
     return 0;
