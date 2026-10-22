@@ -70,6 +70,8 @@ int main(int argc, char* argv[]) {
     int desktopAdapter = -1;
     IDXGIAdapter1* desktopOutputAdapter = nullptr;
     IDXGIOutput* outputAttachedToDesktop = nullptr;
+    DXGI_ADAPTER_DESC1 desc;
+    const char* vendorName;
 
     // We do not know how many adapters there are, so the loop has no
     // limit of its own: it asks for number 0, 1, 2... It leaves when
@@ -98,7 +100,7 @@ int main(int argc, char* argv[]) {
         // Windows: this struct is ours, Windows copies the adapter's
         // details into it, and it needs no Release(). The & is there so
         // the function can write into a variable that lives here.
-        DXGI_ADAPTER_DESC1 desc;
+        
         hr = adapter->GetDesc1(&desc);
         if (FAILED(hr)) {
             // Both pointers were received by now, so both go back, last
@@ -108,8 +110,6 @@ int main(int argc, char* argv[]) {
             factory->Release();
             return 1;
         }
-
-        const char* vendorName;
 
         switch(desc.VendorId) {
             case 0x8086: 
@@ -234,14 +234,14 @@ int main(int argc, char* argv[]) {
     hr = D3D11CreateDevice(
         desktopOutputAdapter,
         D3D_DRIVER_TYPE_UNKNOWN,
-	nullptr,
+        nullptr,
+            0,
+        nullptr,
         0,
-	nullptr,
-	0,
-	D3D11_SDK_VERSION,
-	&device,
-	&featureLevel,
-	&deviceContext
+        D3D11_SDK_VERSION,
+        &device,
+        &featureLevel,
+        &deviceContext
     );
 
     if(FAILED(hr)) {
@@ -250,15 +250,92 @@ int main(int argc, char* argv[]) {
 
         // Nothing new was received, so only the two objects kept by the
         // search go back.
-	outputAttachedToDesktop->Release();
+	    outputAttachedToDesktop->Release();
         desktopOutputAdapter->Release();
 
-	return 1;
+	    return 1;
 
     }
 
     printf("Device was created: 0x%X \n", featureLevel);
+    
+    IDXGIDevice* dxgiDevice = nullptr;
+    hr = device->QueryInterface(IID_PPV_ARGS(&dxgiDevice));
+    
+    if(FAILED(hr)) {
 
+        printf("QueryInterface(IDXGIDevice) failed: 0x%08lX\n", hr);
+        
+        deviceContext->Release();
+        device->Release();
+
+        outputAttachedToDesktop->Release();
+        desktopOutputAdapter->Release();
+
+        return 1;
+    }
+
+    IDXGIAdapter*  dxgiAdapter = nullptr;
+    hr = dxgiDevice->GetAdapter(&dxgiAdapter);
+
+    if(FAILED(hr)) {
+
+        printf("GetAdapter(IDXGIAdapter) failed: 0x%08lX\n", hr);
+
+        dxgiDevice->Release();
+
+        deviceContext->Release();
+        device->Release();
+
+        outputAttachedToDesktop->Release();
+        desktopOutputAdapter->Release();
+
+        return 1;
+
+    }
+
+    DXGI_ADAPTER_DESC dxgiDesc;
+    hr = dxgiAdapter->GetDesc(&dxgiDesc);
+    
+    if(FAILED(hr)) {
+
+        printf("GetDesc(DXGI_ADAPTER_DESC) failed: 0x%08lX\n", hr);
+
+	    dxgiAdapter->Release();
+	    dxgiDevice->Release();
+
+        deviceContext->Release();
+        device->Release();
+
+        outputAttachedToDesktop->Release();
+        desktopOutputAdapter->Release();
+
+	    return 1;    
+
+    }
+
+    const char* dxgiVendorName;
+    
+    switch(dxgiDesc.VendorId) {
+        case 0x8086: 
+            dxgiVendorName = "Intel";
+            break;
+        case 0x10DE: 
+            dxgiVendorName = "NVIDIA";
+            break;
+        case 0x1414: 
+            dxgiVendorName = "Microsoft";
+            break;
+        default: 
+            dxgiVendorName = "unknown";
+    }
+
+    printf("Desktop output's adapter: %ls: 0x%04X (%s) 0x%04X\n", desc.Description, desc.VendorId, vendorName, desc.DeviceId);
+    printf("Device's adapter:         %ls: 0x%04X (%s) 0x%04X\n", dxgiDesc.Description, dxgiDesc.VendorId, dxgiVendorName, dxgiDesc.DeviceId);
+
+    dxgiAdapter->Release();
+    dxgiDevice->Release();
+    
     // The context and the device arrived last, so they go back first; the
     // context belongs to the device, so it goes before it.
     deviceContext->Release();
