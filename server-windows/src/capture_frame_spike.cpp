@@ -14,15 +14,6 @@
 // Piece 3: request the duplication of the desktop output and print its
 // description.
 //
-// Piece 4: acquire one frame that carries a desktop image, printing
-// every attempt.
-//
-// Piece 5: copy the frame into a staging texture and map it, so its
-// pixels can be read by the CPU.
-//
-// Piece 6: copy the pixels row by row into a buffer of our own and save
-// them as frame.bmp.
-//
 // The search starts from step 1's adapters_spike.cpp. The difference:
 // step 1 only looked at each object and gave it back at once; this
 // program keeps the two it needs and gives back everything else.
@@ -40,10 +31,6 @@
 #include <d3d11.h>    // declares D3D11CreateDevice and the ID3D11* types
 
 #include <dxgi1_2.h>  // declares IDXGIOutput1 and the Desktop Duplication types
-
-#include <cstdint>    // uint8_t, one byte
-#include <cstring>    // memcpy
-#include <vector>     // std::vector, the pixel buffer
 
 int main(int argc, char* argv[]) {
 
@@ -361,7 +348,7 @@ int main(int argc, char* argv[]) {
     // The same name, vendor and DeviceId on both lines mean the device is
     // on the adapter that owns the screen. DeviceId names the model, not
     // the unit; on the Acer there is only one Intel.
-    printf("Desktop output's adapter: %ls: 0x%04X (%s) 0x%04X\n", desc.Description, desc.VendorId, vendorName, desc.DeviceId);
+    printf("Desktop output's adapter: %ls:0x%04X (%s) 0x%04X\n", desc.Description, desc.VendorId, vendorName, desc.DeviceId);
     printf("Device's adapter:         %ls: 0x%04X (%s) 0x%04X\n", dxgiDesc.Description, dxgiDesc.VendorId, dxgiVendorName, dxgiDesc.DeviceId);
 
     // The device's adapter and its DXGI face were only needed for the
@@ -434,279 +421,19 @@ int main(int argc, char* argv[]) {
         duplicationDesc.ModeDesc.Height,
         duplicationDesc.DesktopImageInSystemMemory ? "yes" : "no");
 
-    // From here on, every exit has to give back the same growing list of
-    // objects, so the list is written once, as a lambda: a small function
-    // declared inside main that sees main's variables (that is what [&]
-    // means), like a JavaScript arrow function that closes over the
-    // variables around it. What arrives below starts as nullptr or false
-    // and is only given back if it really arrived, so the same lambda is
-    // right at every exit. Most recent first.
-    IDXGIResource* frameResource = nullptr;
-    bool frameHeld = false;
-    ID3D11Texture2D* frameTexture = nullptr;
-    ID3D11Texture2D* stagingTexture = nullptr;
-    bool stagingMapped = false;
+    // Everything still held, most recent first: the duplication, the
+    // output's newer face, the context and the device.
+    duplication->Release();
+    output1->Release();
 
-    auto releaseAll = [&]() {
-        // A mapped texture is closed for reading before it goes back.
-        if (stagingMapped) {
-            deviceContext->Unmap(stagingTexture, 0);
-        }
-        if (stagingTexture) {
-            stagingTexture->Release();
-        }
+    // The context belongs to the device, so it goes before it.
+    deviceContext->Release();
+    device->Release();
 
-        // A frame is handed back to the duplication with ReleaseFrame;
-        // the pointer to it is one more owner, released after that.
-        if (frameHeld) {
-            duplication->ReleaseFrame();
-        }
-        if (frameTexture) {
-            frameTexture->Release();
-        }
-        if (frameResource) {
-            frameResource->Release();
-        }
+    // Kept since the search: the adapter was needed to create the device,
+    // and the output to request the duplication.
+    outputAttachedToDesktop->Release();
+    desktopOutputAdapter->Release();
 
-        duplication->Release();
-        output1->Release();
-
-        // The context belongs to the device, so it goes before it.
-        deviceContext->Release();
-        device->Release();
-
-        // Kept since the search: the adapter was needed to create the
-        // device, and the output to request the duplication.
-        outputAttachedToDesktop->Release();
-        desktopOutputAdapter->Release();
-    };
-
-    // Piece 4: get one frame that carries a desktop image.
-    //
-    // AcquireNextFrame waits up to 500 ms for the screen to change. A
-    // timeout is not an error: the screen simply did not change. A frame
-    // can also carry only a mouse move, with LastPresentTime == 0 and no
-    // new image; that one is handed back and the next one asked for. At
-    // most 10 tries, each one printed, so the Acer shows what really
-    // arrives first (an open question in the spec).
-    DXGI_OUTDUPL_FRAME_INFO frameInfo;
-    const int maxAttempts = 10;
-
-    for (int attempt = 1; attempt <= maxAttempts; attempt++) {
-        hr = duplication->AcquireNextFrame(500, &frameInfo, &frameResource);
-
-        if (hr == DXGI_ERROR_WAIT_TIMEOUT) {
-            // Nothing was acquired, so there is nothing to hand back.
-            printf("Attempt %d: timeout, the screen did not change\n", attempt);
-            continue;
-        }
-
-        if (FAILED(hr)) {
-            // DXGI_ERROR_ACCESS_LOST here means the duplication must be
-            // created again; for a one-frame program, running it again
-            // is exactly that.
-            printf("AcquireNextFrame failed: 0x%08lX\n", hr);
-            releaseAll();
-            return 1;
-        }
-
-        frameHeld = true;
-
-        printf("Attempt %d: LastPresentTime %lld, AccumulatedFrames %u\n",
-            attempt, frameInfo.LastPresentTime.QuadPart, frameInfo.AccumulatedFrames);
-
-        if (frameInfo.LastPresentTime.QuadPart != 0) {
-            break;
-        }
-
-        // Only the pointer moved. This frame goes back before the next
-        // one is asked for, or AcquireNextFrame fails with INVALID_CALL.
-        duplication->ReleaseFrame();
-        frameHeld = false;
-        frameResource->Release();
-        frameResource = nullptr;
-    }
-
-    if (!frameHeld) {
-        printf("No frame with a desktop image after %d attempts; move something on the screen and run again.\n", maxAttempts);
-        releaseAll();
-        return 1;
-    }
-
-    printf("Frame with a desktop image received.\n");
-
-    // Piece 5: bring the frame to where the CPU can read it.
-    //
-    // The frame arrives as a generic IDXGIResource; the same object's
-    // ID3D11Texture2D face is what D3D11 can describe and copy.
-    hr = frameResource->QueryInterface(IID_PPV_ARGS(&frameTexture));
-
-    if(FAILED(hr)) {
-        printf("QueryInterface(ID3D11Texture2D) failed: 0x%08lX\n", hr);
-        releaseAll();
-        return 1;
-    }
-
-    // The frame's own description is the truth about its size: not
-    // DesktopCoordinates, which changes with DPI awareness. Every field
-    // the staging copy depends on is printed, because CopyResource
-    // returns nothing: a mismatch would fail silently.
-    D3D11_TEXTURE2D_DESC frameDesc;
-    frameTexture->GetDesc(&frameDesc);
-
-    printf("Frame texture: %ux%u, format %u, mips %u, array %u, samples %u/%u\n",
-        frameDesc.Width, frameDesc.Height, frameDesc.Format,
-        frameDesc.MipLevels, frameDesc.ArraySize,
-        frameDesc.SampleDesc.Count, frameDesc.SampleDesc.Quality);
-
-    // DuplicateOutput is documented to always give B8G8R8A8_UNORM: blue,
-    // green, red, then a fourth byte, one byte each. Piece 6 writes the
-    // bytes in that order, so checking costs one line and turns a
-    // documented promise into something seen.
-    if (frameDesc.Format != DXGI_FORMAT_B8G8R8A8_UNORM) {
-        printf("Unexpected frame format %u; expected %u (B8G8R8A8_UNORM)\n",
-            frameDesc.Format, DXGI_FORMAT_B8G8R8A8_UNORM);
-        releaseAll();
-        return 1;
-    }
-
-    // The staging texture: same size and format as the frame, but made
-    // for one job only, being copied into and read by the CPU. The rules
-    // for that force Usage, CPUAccessFlags, BindFlags and MiscFlags; the
-    // single mip, slice and sample match what the frame is expected to
-    // have, which the line above shows.
-    D3D11_TEXTURE2D_DESC stagingDesc = {};
-    stagingDesc.Width = frameDesc.Width;
-    stagingDesc.Height = frameDesc.Height;
-    stagingDesc.Format = frameDesc.Format;
-    stagingDesc.MipLevels = 1;
-    stagingDesc.ArraySize = 1;
-    stagingDesc.SampleDesc.Count = 1;
-    stagingDesc.SampleDesc.Quality = 0;
-    stagingDesc.Usage = D3D11_USAGE_STAGING;
-    stagingDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-    stagingDesc.BindFlags = 0;
-    stagingDesc.MiscFlags = 0;
-
-    // The device creates; nullptr means the texture starts with no data.
-    hr = device->CreateTexture2D(&stagingDesc, nullptr, &stagingTexture);
-
-    if(FAILED(hr)) {
-        printf("CreateTexture2D(staging) failed: 0x%08lX\n", hr);
-        releaseAll();
-        return 1;
-    }
-
-    // The context tells the adapter to copy. It returns nothing, so there
-    // is no hr to test here.
-    deviceContext->CopyResource(stagingTexture, frameTexture);
-
-    // Map opens the staging texture for reading and waits for the copy
-    // above to finish. RowPitch is the distance in bytes from one row to
-    // the next; it may be larger than Width * 4 because of padding, which
-    // is why piece 6 copies row by row.
-    D3D11_MAPPED_SUBRESOURCE mappedFrame;
-    hr = deviceContext->Map(stagingTexture, 0, D3D11_MAP_READ, 0, &mappedFrame);
-
-    if(FAILED(hr)) {
-        printf("Map(staging) failed: 0x%08lX\n", hr);
-        releaseAll();
-        return 1;
-    }
-
-    stagingMapped = true;
-
-    printf("Frame mapped: RowPitch %u bytes, Width * 4 = %u bytes\n",
-        mappedFrame.RowPitch, frameDesc.Width * 4);
-
-    // Piece 6: copy the pixels out and save them as frame.bmp.
-    //
-    // A buffer of our own, sized for the whole picture. std::vector is
-    // the C++ standard library's growable array, the closest thing to a
-    // JavaScript array: it frees its own memory when main ends, so unlike
-    // the COM objects it needs no Release().
-    const UINT width = frameDesc.Width;
-    const UINT height = frameDesc.Height;
-    const UINT rowBytes = width * 4;
-    std::vector<uint8_t> pixels(static_cast<size_t>(rowBytes) * height);
-
-    // pData is where the mapped texture starts. Seen as a uint8_t*, adding
-    // n to it moves n bytes forward, so row y starts y * RowPitch bytes
-    // in. Only the first rowBytes of each row are pixels; the rest, if
-    // any, is padding and is not copied.
-    const uint8_t* source = static_cast<const uint8_t*>(mappedFrame.pData);
-
-    for (UINT y = 0; y < height; y++) {
-        memcpy(&pixels[static_cast<size_t>(y) * rowBytes],
-               source + static_cast<size_t>(y) * mappedFrame.RowPitch,
-               rowBytes);
-    }
-
-    // The fourth byte of every pixel becomes 0xFF, fully opaque. Microsoft
-    // says it is unused in this BMP format, but some viewers read it as
-    // transparency, and what DXGI leaves there is not documented.
-    for (size_t i = 3; i < pixels.size(); i += 4) {
-        pixels[i] = 0xFF;
-    }
-
-    // The pixels are ours now: the texture is closed for reading and the
-    // frame handed back to the duplication, in that order (copy, map,
-    // read, unmap, then ReleaseFrame, as the spec decided).
-    deviceContext->Unmap(stagingTexture, 0);
-    stagingMapped = false;
-    duplication->ReleaseFrame();
-    frameHeld = false;
-
-    // The file is a file header, an info header, then the pixels with no
-    // gaps: at 32 bits per pixel a row is always a multiple of 4 bytes, so
-    // BMP needs no row padding. A negative height means the first row in
-    // the file is the top of the picture, the order the rows came out of
-    // the texture. The header is assumed to be packed to 14 bytes; the
-    // build checks it instead of trusting it.
-    static_assert(sizeof(BITMAPFILEHEADER) == 14, "BITMAPFILEHEADER must be 14 bytes");
-
-    BITMAPFILEHEADER fileHeader = {};
-    fileHeader.bfType = 0x4D42; // the letters "BM", the format's signature
-    fileHeader.bfOffBits = sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER);
-    fileHeader.bfSize = fileHeader.bfOffBits + static_cast<DWORD>(pixels.size());
-
-    BITMAPINFOHEADER infoHeader = {};
-    infoHeader.biSize = sizeof(BITMAPINFOHEADER);
-    infoHeader.biWidth = static_cast<LONG>(width);
-    infoHeader.biHeight = -static_cast<LONG>(height);
-    infoHeader.biPlanes = 1;
-    infoHeader.biBitCount = 32;
-    infoHeader.biCompression = BI_RGB;
-    infoHeader.biSizeImage = static_cast<DWORD>(pixels.size());
-
-    // An open file is one more thing received that must be given back,
-    // with fclose. fopen_s is Visual Studio's version of fopen: it reports
-    // failure through its return value, and plain fopen makes MSVC warn.
-    // The file lands in the folder the program is run from.
-    FILE* file = nullptr;
-    if (fopen_s(&file, "frame.bmp", "wb") != 0 || file == nullptr) {
-        printf("Could not create frame.bmp\n");
-        releaseAll();
-        return 1;
-    }
-
-    // fwrite returns how many items it wrote; anything short of 1 means
-    // the file is incomplete.
-    bool written =
-        fwrite(&fileHeader, sizeof(fileHeader), 1, file) == 1 &&
-        fwrite(&infoHeader, sizeof(infoHeader), 1, file) == 1 &&
-        fwrite(pixels.data(), pixels.size(), 1, file) == 1;
-
-    fclose(file);
-
-    if (!written) {
-        printf("Writing frame.bmp failed\n");
-        releaseAll();
-        return 1;
-    }
-
-    printf("Saved frame.bmp: %ux%u\n", width, height);
-
-    releaseAll();
     return 0;
 }
