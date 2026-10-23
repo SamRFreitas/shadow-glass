@@ -421,6 +421,52 @@ int main(int argc, char* argv[]) {
         duplicationDesc.ModeDesc.Height,
         duplicationDesc.DesktopImageInSystemMemory ? "yes" : "no");
 
+    DXGI_OUTDUPL_FRAME_INFO frameInfo;
+    IDXGIResource* resource = nullptr;
+
+    hr = duplication->AcquireNextFrame(500, &frameInfo, &resource);
+
+    if(hr == DXGI_ERROR_WAIT_TIMEOUT) {
+
+        printf("Screen hasn't changed at all\n");
+
+        duplication->Release();
+        output1->Release();
+
+        deviceContext->Release();
+        device->Release();
+
+        outputAttachedToDesktop->Release();
+        desktopOutputAdapter->Release();
+
+        return 1;
+    }
+
+    if(FAILED(hr)) {
+
+        printf("AcquireNextFrame failed: 0x%08lX\n", hr);
+
+        duplication->Release();
+        output1->Release();
+
+        deviceContext->Release();
+        device->Release();
+
+        outputAttachedToDesktop->Release();
+        desktopOutputAdapter->Release();
+
+        return 1;
+
+    }
+
+    printf("---------- Frame info ----------\n");
+    printf("Last present time: %lld\n", frameInfo.LastPresentTime.QuadPart);
+    printf("Accumulated frames: %u\n", frameInfo.AccumulatedFrames);
+    printf("--------------------------------\n");
+    
+    duplication->ReleaseFrame(); 
+    resource->Release();
+
     // Everything still held, most recent first: the duplication, the
     // output's newer face, the context and the device.
     duplication->Release();
