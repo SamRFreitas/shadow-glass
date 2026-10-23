@@ -461,6 +461,7 @@ int main(int argc, char* argv[]) {
         printf("Accumulated frames: %u\n", frameInfo.AccumulatedFrames);
         printf("--------------------------------\n");
 
+        printf("Resource address: %p\n", resource);
         duplication->ReleaseFrame();
         resource->Release();
 
@@ -484,6 +485,7 @@ int main(int argc, char* argv[]) {
 
     
     printf("---------- Frame info ----------\n");
+    printf("Resource address: %p\n", resource);
     printf("Image acquired on %d attempt\n", frameAttempt);
     printf("Last present time: %lld\n", frameInfo.LastPresentTime.QuadPart);
     printf("Accumulated frames: %u\n", frameInfo.AccumulatedFrames);
