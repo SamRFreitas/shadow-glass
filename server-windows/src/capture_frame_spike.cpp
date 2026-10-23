@@ -423,12 +423,52 @@ int main(int argc, char* argv[]) {
 
     DXGI_OUTDUPL_FRAME_INFO frameInfo;
     IDXGIResource* resource = nullptr;
+    int frameAttempt = -1;
 
-    hr = duplication->AcquireNextFrame(500, &frameInfo, &resource);
+    for(int i = 1; i < 11; i++) {
 
-    if(hr == DXGI_ERROR_WAIT_TIMEOUT) {
+        hr = duplication->AcquireNextFrame(500, &frameInfo, &resource);
 
-        printf("Screen hasn't changed at all\n");
+        if(hr == DXGI_ERROR_WAIT_TIMEOUT) {
+            printf("Timeout on attempt: %d\n", i);
+            continue;
+        }
+
+        if(FAILED(hr)) {
+
+            printf("AcquireNextFrame failed: 0x%08lX\n", hr);
+
+            duplication->Release();
+            output1->Release();
+
+            deviceContext->Release();
+            device->Release();
+
+            outputAttachedToDesktop->Release();
+            desktopOutputAdapter->Release();
+
+            return 1;
+
+        }
+
+        if(frameInfo.LastPresentTime.QuadPart > 0) {
+            frameAttempt = i;
+            break;
+        }
+        
+        printf("---------- Frame info ----------\n");
+        printf("Last present time: %lld\n", frameInfo.LastPresentTime.QuadPart);
+        printf("Accumulated frames: %u\n", frameInfo.AccumulatedFrames);
+        printf("--------------------------------\n");
+
+        duplication->ReleaseFrame();
+        resource->Release();
+
+    }
+
+    if(frameAttempt < 0) {
+
+        printf("No image has been acquired in any attempt :(\n");
 
         duplication->Release();
         output1->Release();
@@ -442,24 +482,9 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    if(FAILED(hr)) {
-
-        printf("AcquireNextFrame failed: 0x%08lX\n", hr);
-
-        duplication->Release();
-        output1->Release();
-
-        deviceContext->Release();
-        device->Release();
-
-        outputAttachedToDesktop->Release();
-        desktopOutputAdapter->Release();
-
-        return 1;
-
-    }
-
+    
     printf("---------- Frame info ----------\n");
+    printf("Image acquired on %d attempt\n", frameAttempt);
     printf("Last present time: %lld\n", frameInfo.LastPresentTime.QuadPart);
     printf("Accumulated frames: %u\n", frameInfo.AccumulatedFrames);
     printf("--------------------------------\n");
