@@ -15,10 +15,17 @@ was done and piece 2 not started; both are out of date.
   request. The source was then returned to piece 3 (commit 6ff5970), so
   the person can redo pieces 4 to 6 step by step. The version at
   377cbdd is a reference to compare against, not code to paste.
-- Next: piece 4, the AcquireNextFrame loop. Start by asking what the
-  person imagines goes in and comes out.
-- Ask whether the person wants the `releaseAll` lambda (a programmer
-  decision, not in the spec) or hand-written release lists per exit.
+- 2026-10-23: the person wrote piece 4 themselves, in two parts (4a:
+  one AcquireNextFrame call; 4b: up to 10 attempts, a timeout retried,
+  a pointer-only frame given back with ReleaseFrame and Release). Run
+  on the Acer: attempt 1 pointer-only, attempt 2 with the image, exit
+  code 0. Every exit releases through a hand-written list; the person
+  did not need the `releaseAll` lambda.
+- An experiment the person added: both frames came back at the same
+  resource address (0000024F4084D398). Consistent with DXGI reusing
+  the object, not proof of it: the first was released before the
+  second arrived, so a new object could land at the same address.
+- Next: piece 5, the staging copy and Map. Then piece 6, the BMP.
 - Leftover in the piece 3 version: the "Desktop output's adapter" print
   lacks the space after the second colon (`%ls:0x`).
 
@@ -48,6 +55,15 @@ module.
 - Do not bring in a new word to explain another one ("connection" for
   device, "card" for adapter): it added a second confusion.
 - A question whose answer is in the table just above it tests nothing.
+- 2026-10-23: the word "owner" (dono) confused the person; "an open
+  request to use the object", counted by the object itself, worked
+  better. Not settled; ask which word they prefer.
+- "Frame" and "resource" used for the same thing read as two objects.
+  Say it once: one COM object (the resource) holding the frame (the
+  image); the duplication lends the frame (ReleaseFrame), the object
+  counts requests (Release).
+- The person prefers writing from the explained items alone; offer the
+  step list only when asked.
 
 ## Deferred
 
