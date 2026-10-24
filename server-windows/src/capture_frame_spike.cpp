@@ -548,6 +548,79 @@ int main(int argc, char* argv[]) {
 
     }
 
+    D3D11_TEXTURE2D_DESC stagingDesc = frameDesc;
+    stagingDesc.Usage = D3D11_USAGE_STAGING;
+    stagingDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+    stagingDesc.BindFlags = 0;
+    stagingDesc.MiscFlags = 0;
+
+    ID3D11Texture2D* stagingTextureFrame;
+
+    hr = device->CreateTexture2D(&stagingDesc, nullptr, &stagingTextureFrame);
+
+    if(FAILED(hr)) {
+
+        printf("CreateTexture2D failed: 0x%08lX\n", hr);
+
+        frameTexture->Release();
+    
+        duplication->ReleaseFrame(); 
+        resource->Release();
+
+        duplication->Release();
+        output1->Release();
+
+        deviceContext->Release();
+        device->Release();
+
+        outputAttachedToDesktop->Release();
+        desktopOutputAdapter->Release();
+
+        return 1;
+
+    }
+
+    deviceContext->CopyResource(stagingTextureFrame, frameTexture);
+
+    D3D11_MAPPED_SUBRESOURCE mappedTexture;
+
+    hr = deviceContext->Map(
+        stagingTextureFrame,
+        0,
+        D3D11_MAP_READ,
+        0,
+        &mappedTexture
+    );
+
+    if(FAILED(hr)) {
+
+        printf("Map failed: 0x%08lX\n", hr);
+
+        stagingTextureFrame->Release();
+        frameTexture->Release();
+        
+        duplication->ReleaseFrame(); 
+        resource->Release();
+
+        duplication->Release();
+        output1->Release();
+
+        deviceContext->Release();
+        device->Release();
+        
+        outputAttachedToDesktop->Release();
+        desktopOutputAdapter->Release();
+
+        return 1;
+
+    }
+
+    printf("Row pitch: %u\n", mappedTexture.RowPitch);
+    printf("Width * 4 = %u\n", stagingDesc.Width * 4);
+
+    deviceContext->Unmap(stagingTextureFrame, 0);
+
+    stagingTextureFrame->Release();
     frameTexture->Release();
     
     duplication->ReleaseFrame(); 
