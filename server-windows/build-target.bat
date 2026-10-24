@@ -8,6 +8,7 @@ REM to that program and not to an unrelated one.
 REM
 REM Example:
 REM   build-target adapters_spike
+REM   build-target capture_frame_spike unaware
 REM
 REM Run this from the Developer Command Prompt for VS, inside
 REM server-windows\ — it needs cl.exe on PATH, same as build.bat.
@@ -36,6 +37,6 @@ REM Step 3 - run it, then show the number its main() returned
 REM (0 = success, anything else = the program reported an error).
 echo.
 echo === 3/3 Run %~1.exe ===
-build\Debug\%~1.exe
+build\Debug\%~1.exe %2
 echo.
 echo Exit code: %errorlevel%
