@@ -490,6 +490,65 @@ int main(int argc, char* argv[]) {
     printf("Last present time: %lld\n", frameInfo.LastPresentTime.QuadPart);
     printf("Accumulated frames: %u\n", frameInfo.AccumulatedFrames);
     printf("--------------------------------\n");
+
+    ID3D11Texture2D* frameTexture = nullptr;
+    hr = resource->QueryInterface(IID_PPV_ARGS(&frameTexture));
+
+    if(FAILED(hr)) {
+
+        printf("QueryInterface(ID3D11Texture2D) failed: 0x%08lX\n", hr);
+
+        duplication->ReleaseFrame(); 
+        resource->Release();
+
+        duplication->Release();
+        output1->Release();
+
+        deviceContext->Release();
+        device->Release();
+
+        outputAttachedToDesktop->Release();
+        desktopOutputAdapter->Release();
+
+        return 1;
+
+    }
+
+    D3D11_TEXTURE2D_DESC frameDesc;
+    frameTexture->GetDesc(&frameDesc);
+
+    printf("------- Frame description ------\n");
+    printf("Width: %u x Height: %u\n", frameDesc.Width, frameDesc.Height);
+    printf("Format: %u\n", frameDesc.Format);
+    printf("Mip levels: %u\n", frameDesc.MipLevels);
+    printf("Array size: %u\n", frameDesc.ArraySize);
+    printf("Sample description count: %u\n", frameDesc.SampleDesc.Count);
+    printf("Sample description quality: %u\n", frameDesc.SampleDesc.Quality);
+    printf("--------------------------------\n");
+
+    if(frameDesc.Format != DXGI_FORMAT_B8G8R8A8_UNORM) {
+
+        printf("Unexpected frame description format: %u\n", frameDesc.Format);
+
+        frameTexture->Release();
+
+        duplication->ReleaseFrame(); 
+        resource->Release();
+
+        duplication->Release();
+        output1->Release();
+
+        deviceContext->Release();
+        device->Release();
+
+        outputAttachedToDesktop->Release();
+        desktopOutputAdapter->Release();
+
+        return 1;
+
+    }
+
+    frameTexture->Release();
     
     duplication->ReleaseFrame(); 
     resource->Release();
