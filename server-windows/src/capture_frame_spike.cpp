@@ -52,7 +52,15 @@ int main(int argc, char* argv[]) {
         printf("DPI awareness: ON \n");
     }
 
-    
+    // Temporary diagnostic, to be removed: with "unaware" this program
+    // reports 1366x768 where adapters_spike reports 1093x614 at the same
+    // 125% scale. This asks Windows what the process's DPI awareness
+    // really is at this point: 0 unaware, 1 system aware, 2 per-monitor
+    // aware.
+    printf("Actual DPI awareness: %d\n",
+        GetAwarenessFromDpiAwarenessContext(GetThreadDpiAwarenessContext()));
+
+
     // Empty for now; Windows fills it in below.
     IDXGIFactory1* factory = nullptr;
 
