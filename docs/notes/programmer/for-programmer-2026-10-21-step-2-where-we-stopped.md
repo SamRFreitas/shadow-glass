@@ -25,7 +25,25 @@ was done and piece 2 not started; both are out of date.
   resource address (0000024F4084D398). Consistent with DXGI reusing
   the object, not proof of it: the first was released before the
   second arrived, so a new object could land at the same address.
-- Next: piece 5, the staging copy and Map. Then piece 6, the BMP.
+- 2026-10-24: the person wrote piece 5 (5a: frame texture face,
+  description, format check; 5b: staging description, CreateTexture2D,
+  CopyResource, Map, RowPitch print, Unmap). Run on the Acer:
+  1366x768, format 87, RowPitch 5504 against Width * 4 = 5464, exit
+  code 0.
+- DPI, found 2026-10-24, not yet recorded in the spec: with the process
+  truly unaware the frame texture is still 1366x768 (spec question 2
+  answered); Windows adds a HIGHDPIAWARE flag for the exe path after a
+  first run, so later runs start per-monitor aware (2). See
+  `docs/research/2026-10-24-highdpiaware-compatibility-flag.md`. The
+  spec entry for question 2 is drafted in the conversation and is to be
+  written at the end of step 2. The temporary "Actual DPI awareness"
+  print is still in capture_frame_spike.cpp, to be removed then. The
+  researcher's experiments (Process Monitor first) are optional.
+- Next: piece 6. Its items 1-4 (byte pointer, buffer, memcpy per row,
+  fourth byte 0xFF) were explained but did not land; the person was
+  tired. Restart from item 1, by message, with an exercise on the row
+  arithmetic first: 4 bytes per pixel, row y starts at y * RowPitch,
+  RowPitch includes the padding, the height only says how many rows.
 - Leftover in the piece 3 version: the "Desktop output's adapter" print
   lacks the space after the second colon (`%ls:0x`).
 
@@ -64,6 +82,15 @@ module.
   counts requests (Release).
 - The person prefers writing from the explained items alone; offer the
   step list only when asked.
+- 2026-10-24: step lists name only what is new (new calls, new
+  concepts). Routine C++ patterns the person already knows (releases,
+  return 1, error checks) are left for them and pointed out in review.
+- Write steps as prose lists, not tables: tables give away too much.
+  Arguments in order may be a numbered list, one per line.
+- "Line" was ambiguous (a line of code vs a row of the image). Say
+  "row" (linha da imagem) for the image.
+- Watch for fatigue: when the person starts mixing numbers, offer to
+  stop; they asked for a calm restart the next day.
 
 ## Deferred
 
